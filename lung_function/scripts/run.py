@@ -99,7 +99,6 @@ class Run:
                     medutils.appendrows_to(self.mypath.save_label_fpath(mode), batch_y_np, head=head)
                     medutils.appendrows_to(self.mypath.save_pred_fpath(mode), pred_np, head=head)
 
-
                 loss = self.loss_fun(pred, batch_y)
                 with torch.no_grad():
                     mae_ls = [loss_fun_mae(pred[:, i], batch_y[:, i]).item() for i in range(len(self.target))]
@@ -116,13 +115,13 @@ class Run:
             # log_metric(mode+'MAEBatch_All', mae_all, data_idx+epoch_idx*len(dataloader))
             # [log_metric(mode+'MAEBatch_'+t, m, data_idx+epoch_idx*len(dataloader)) for t, m in zip(self.target, mae_ls)]
 
-            loss_accu += loss.item()
+            loss_accu += loss_cpu
             for i, mae in enumerate(mae_ls):
                 mae_accu_ls[i] += mae
             mae_accu_all += mae_all
 
-            print('pred:', pred.clone().detach().cpu().numpy())
-            print('label:', batch_y.clone().detach().cpu().numpy())
+            # print('pred:', pred.clone().detach().cpu().numpy())
+            # print('label:', batch_y.clone().detach().cpu().numpy())
             if epoch_idx < 3:
                 t2 = time.time()
                 log_metric('TUpdateWBatch', t2-t1, data_idx+epoch_idx*len(dataloader))
