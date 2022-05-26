@@ -25,7 +25,7 @@ from lung_function.modules.networks import get_net_3d
 from lung_function.modules.path import PFTPath
 from lung_function.modules.set_args import get_args
 from lung_function.modules.tool import record_1st, record_artifacts, record_cgpu_info
-
+from lung_function.modules.compute_metrics import icc, metrics
 args = get_args()
 
 class Run:
@@ -86,7 +86,7 @@ class Run:
             batch_x = data['image'].to(self.device)
             batch_y = data['label'].to(self.device)
             with torch.cuda.amp.autocast():
-                if mode != 'train':
+                if mode != 'train' or save_pred:  # save pred for inference
                     with torch.no_grad():
                         pred = self.net(batch_x)
 
@@ -150,8 +150,8 @@ def run(args):
     myrun = Run(args)
     if args.mode == 'infer':
         save_pred = True
-        myrun.step('traininfer',  0,  save_pred)
-        myrun.step('traininfernoaug',  0, save_pred)
+        myrun.step('train',  0,  save_pred)
+        myrun.step('train_no_aug',  0, save_pred)
         myrun.step('valid', 0,  save_pred)
         myrun.step('test',  0,  save_pred)
     else: # 'train' or 'continue train'
@@ -167,8 +167,21 @@ def run(args):
 
                 save_pred = True
                 myrun.step('train',  i, save_pred)
+                myrun.step('train_no_aug', i, save_pred)
                 myrun.step('valid',  i, save_pred)
                 myrun.step('test', i, save_pred)
+
+    mypath = PFTPath(args.id, check_id_dir=False, space=args.ct_sp)
+    modes = ['train', 'trainnoaug', 'valid', 'test']
+    label_ls = [mypath.save_label_fpath(mode) for mode in modes]
+    pred_ls = [mypath.save_pred_fpath(mode) for mode in modes]
+
+    for pred_fpath, label_fpath in zip(pred_ls, label_ls):
+        metrics(pred_fpath, label_fpath)
+        icc_value = icc(label_fpath, pred_fpath)
+        log_params(icc_value)
+        print('icc:', icc_value)
+
     print('Finish all things!')
 
 

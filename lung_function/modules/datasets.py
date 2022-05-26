@@ -116,6 +116,6 @@ def all_loaders(data_dir, label_fpath, args):
     data_dt = {'train': train_dataloader,
                'valid': valid_dataloader,
                'test': test_dataloader,
-               'train_no_aug': train_dataloader_no_aug}
+               'trainnoaug': train_dataloader_no_aug}
     return data_dt
 
