@@ -52,10 +52,12 @@ class Run:
             self.net.load_state_dict(torch.load(pretrained_path.model_fpath, map_location=self.device))  # model_fpath need to exist
 
         self.BestMetricDt = {'trainLossEpochBest': 1000,
+                             'trainnoaugLossEpochBest': 1000,
                         'validLossEpochBest': 1000,
                         'testLossEpochBest': 1000,
 
                         'trainMAEEpoch_AllBest': 1000,
+                             'trainnoaugMAEEpoch_AllBest': 1000,
                         'validMAEEpoch_AllBest': 1000,
                         'testMAEEpoch_AllBest': 1000,
 
@@ -104,7 +106,7 @@ class Run:
                     mae_ls = [loss_fun_mae(pred[:, i], batch_y[:, i]).item() for i in range(len(self.target))]
                     mae_all = loss_fun_mae(pred, batch_y).item()
 
-            if mode == 'train':  # update gradients only when training
+            if mode == 'train' and save_pred is not True:  # update gradients only when training
                 self.opt.zero_grad()
                 scaler.scale(loss).backward()
                 scaler.step(self.opt)
@@ -148,12 +150,11 @@ class Run:
 
 def run(args):
     myrun = Run(args)
+    infer_modes = ['train', 'trainnoaug', 'valid', 'test']
     if args.mode == 'infer':
         save_pred = True
-        myrun.step('train',  0,  save_pred)
-        myrun.step('train_no_aug',  0, save_pred)
-        myrun.step('valid', 0,  save_pred)
-        myrun.step('test',  0,  save_pred)
+        for mode in infer_modes:
+            myrun.step(mode,  0,  save_pred)
     else: # 'train' or 'continue train'
         for i in range(args.epochs):  # 20000 epochs
             myrun.step('train', i)
@@ -166,10 +167,8 @@ def run(args):
                 print(f"load net from {myrun.mypath.model_fpath}")
 
                 save_pred = True
-                myrun.step('train',  i, save_pred)
-                myrun.step('train_no_aug', i, save_pred)
-                myrun.step('valid',  i, save_pred)
-                myrun.step('test', i, save_pred)
+                for mode in infer_modes:
+                    myrun.step(mode, i, save_pred)
 
     mypath = PFTPath(args.id, check_id_dir=False, space=args.ct_sp)
     modes = ['train', 'trainnoaug', 'valid', 'test']
@@ -197,8 +196,8 @@ if __name__ == "__main__":
     id = record_1st("results/record.log")  # write super parameters from set_args.py to record file.
 
     with mlflow.start_run(run_name=str(id), tags={"mlflow.note.content": args.remark}):
-        p1 = threading.Thread(target=record_cgpu_info, args=(args.outfile,))
-        p1.start()
+        # p1 = threading.Thread(target=record_cgpu_info, args=(args.outfile,))
+        # p1.start()
         # p2 = threading.Thread(target=record_artifacts, args=(args.outfile,))
         # p2.start()
 
@@ -206,8 +205,8 @@ if __name__ == "__main__":
         log_params(vars(args))
         run(args)
 
-        p1.do_run = False  # stop the thread
+        # p1.do_run = False  # stop the thread
         # p2.do_run = False  # stop the thread
-        p1.join()
+        # p1.join()
         # p2.join()
 

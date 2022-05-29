@@ -36,7 +36,7 @@ def xformd(mode, z_size: int = 192, y_size: int = 256, x_size: int = 256, target
             xforms.extend([RandomCropForegroundd(keys=keys, roi_size=[z_size, y_size, x_size], source_key='lung_mask')])
         else:
             xforms.extend([RandSpatialCropd(keys=keys, roi_size=[z_size, y_size, x_size], random_center=True, random_size=False)])
-        xforms.extend([RandGaussianNoised(keys=keys, prob=0.5, mean=0, std=0.01)])
+        # xforms.extend([RandGaussianNoised(keys=keys, prob=0.5, mean=0, std=0.01)])
     else:
         xforms.extend([CenterSpatialCropd(keys=keys, roi_size=[z_size, y_size, x_size])])
 
