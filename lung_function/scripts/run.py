@@ -35,7 +35,6 @@ def thread_safe(func):
             print('get lock by main thread')
             func(*args, **kwargs)
             print('release lock by main thread')
-
     return thread_safe_fun
 
 
@@ -68,13 +67,13 @@ class Run:
 
         self.BestMetricDt = {'trainLossEpochBest': 1000,
                              'trainnoaugLossEpochBest': 1000,
-                        'validLossEpochBest': 1000,
-                        'testLossEpochBest': 1000,
+                            'validLossEpochBest': 1000,
+                            'testLossEpochBest': 1000,
 
-                        'trainMAEEpoch_AllBest': 1000,
+                            'trainMAEEpoch_AllBest': 1000,
                              'trainnoaugMAEEpoch_AllBest': 1000,
-                        'validMAEEpoch_AllBest': 1000,
-                        'testMAEEpoch_AllBest': 1000,
+                            'validMAEEpoch_AllBest': 1000,
+                            'testMAEEpoch_AllBest': 1000,
 
                         }
 

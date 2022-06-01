@@ -385,7 +385,7 @@ def record_cgpu_info(outfile, lock) -> Tuple:
         # log_dict['gpu_mem_usage'] = gpu_mem_usage
         # gpu_util = 0
         i = 0
-        period = 2  # 2 seconds
+        period = 4  # 2 seconds
         # cgpu_dt = {'step': [],
         #             'cpu_mem_used_GB_in_process_rss': [],
         #            'cpu_mem_used_GB_in_process_vms': [],
@@ -424,6 +424,7 @@ def record_cgpu_info(outfile, lock) -> Tuple:
                 try:
                     with lock:
                         print('get lock by sub-thread')
+                        time.sleep(1)
                         log_metric('cpu_mem_used_GB_in_process_rss', memoryUse, step=i)
                         log_metric('cpu_mem_used_GB_in_process_vms', memoryUse2, step=i)
                         log_metric('cpu_util_used_percent', cpu_percent, step=i)
@@ -431,10 +432,11 @@ def record_cgpu_info(outfile, lock) -> Tuple:
                         log_metric("gpu_util", res.gpu, step=i)
                         log_metric('gpu_mem_used_MB', gpu_mem_used, step=i)
                         print('release lock by sub-thread')
+                        time.sleep(1)
                 except Exception as er:  # sometimes the sqlite database is locked by the main thread.
                     print(er, file=sys.stderr)
                     pass
-                time.sleep(period)
+                time.sleep(period-2)
                 i += period
             else:
                 print('record_cgpu_info do_run is True, let stop the process')
