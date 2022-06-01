@@ -14,7 +14,7 @@ import threading
 import time
 from medutils.medutils import count_parameters
 from medutils import medutils
-
+from queue import Queue
 import torch
 import torch.nn as nn
 import sqlite3
@@ -147,6 +147,8 @@ class Run:
                 torch.save(self.net.state_dict(), self.mypath.model_fpath)
 
 
+def log_metrics_for_cgpu():
+    pass
 
 def run(args):
     myrun = Run(args)
@@ -169,6 +171,7 @@ def run(args):
                 save_pred = True
                 for mode in infer_modes:
                     myrun.step(mode, i, save_pred)
+            log_metrics_for_cgpu()
 
     mypath = PFTPath(args.id, check_id_dir=False, space=args.ct_sp)
     modes = ['train', 'trainnoaug', 'valid', 'test']
@@ -194,10 +197,10 @@ if __name__ == "__main__":
 
     mlflow.set_experiment("lung_fun_db15")
     id = record_1st("results/record.log")  # write super parameters from set_args.py to record file.
-
+    que = Queue()
     with mlflow.start_run(run_name=str(id), tags={"mlflow.note.content": args.remark}):
-        # p1 = threading.Thread(target=record_cgpu_info, args=(args.outfile,))
-        # p1.start()
+        p1 = threading.Thread(target=record_cgpu_info, args=(args.outfile,))
+        p1.start()
         # p2 = threading.Thread(target=record_artifacts, args=(args.outfile,))
         # p2.start()
 
@@ -205,8 +208,8 @@ if __name__ == "__main__":
         log_params(vars(args))
         run(args)
 
-        # p1.do_run = False  # stop the thread
+        p1.do_run = False  # stop the thread
         # p2.do_run = False  # stop the thread
-        # p1.join()
+        p1.join()
         # p2.join()
 
