@@ -325,8 +325,23 @@ def record_gpu_info(outfile) -> Tuple:
         print('outfile is None, can not show GPU memory info')
         return None, None, None
 
+# def log_metrics_for_cgpu():
+#     t0 = time.time()
+#     size = q_step.qsize()
+#     if size:
+#         for i in range(size):
+#             i = q_step.get()
+#             log_metric('cpu_mem_used_GB_rss', q_cpu_mem_rss.get(), step=i)
+#             # log_metric('cpu_mem_used_GB_in_process_vms', q_cpu_mem_vms.get(), step=i)
+#             log_metric('cpu_util_used_percent', q_cpu_util_percent.get(), step=i)
+#             # log_metric('cpu_mem_used_percent', q_cpu_mem_percent.get(), step=i)
+#             log_metric("gpu_util", q_gpu_util.get(), step=i)
+#             log_metric('gpu_mem_used_MB', q_gpu_mem_Mb.get(), step=i)
+#
+#         print(f'log_metrics_for_cgpu loged {size} steps, which cost {time.time() - t0} seconds.')
+#
 
-def record_cgpu_info(outfile, cgpu_dt) -> Tuple:
+def record_cgpu_info(outfile, lock) -> Tuple:
     """Record GPU information to `outfile`.
 
     Args:
@@ -381,39 +396,41 @@ def record_cgpu_info(outfile, cgpu_dt) -> Tuple:
         #            }
         while i<60*20:  # stop signal passed from t, monitor 20 minutes
             if t.do_run:
-                cgpu_dt['step'].append(i)
+                # q_step.put(i)
 
                 memoryUse = python_process.memory_info().rss / 2. ** 30  # memory use in GB...I think
-                cgpu_dt['q_cpu_mem_Gb_rss'].put(memoryUse)
+                # q_cpu_mem_rss.put(memoryUse)
 
 
                 memoryUse2 = python_process.memory_info().vms / 2. ** 30  # memory use in GB...I think
-                cgpu_dt['q_cpu_mem_Gb_vms'].put(memoryUse2)
+                # q_cpu_mem_vms.put(memoryUse2)
 
                 cpu_percent = psutil.cpu_percent()
-                cgpu_dt['q_cpu_util_percent'].put(cpu_percent)
+                # q_cpu_util_percent.put(cpu_percent)
                 # gpu_mem = dict(psutil.virtual_memory()._asdict())
                 # log_params(gpu_mem)
                 cpu_mem_used = psutil.virtual_memory().percent
-                cgpu_dt['q_cpu_mem_percent'].put(cpu_mem_used)
+                # q_cpu_mem_percent.put(cpu_mem_used)
 
                 res = nvidia_smi.nvmlDeviceGetUtilizationRates(handle)
                 # gpu_util += res.gpu
-                cgpu_dt['q_gpu_util'].put(res.gpu)
+                # q_gpu_util.put(res.gpu)
 
                 info = nvidia_smi.nvmlDeviceGetMemoryInfo(handle)
                 # gpu_mem_used = str(_bytes_to_megabytes(info.used)) + '/' + str(_bytes_to_megabytes(info.total))
                 gpu_mem_used = _bytes_to_megabytes(info.used)
-                cgpu_dt['q_gpu_mem_Mb'].put(gpu_mem_used)
+                # q_gpu_mem_Mb.put(gpu_mem_used)
 
                 try:
-                    # log_metric('cpu_mem_used_GB_in_process_rss', memoryUse, step=i)
-                    # log_metric('cpu_mem_used_GB_in_process_vms', memoryUse2, step=i)
-                    # log_metric('cpu_util_used_percent', cpu_percent, step=i)
-                    # log_metric('cpu_mem_used_percent', cpu_mem_used, step=i)
-                    # log_metric("gpu_util", res.gpu, step=i)
-                    # log_metric('gpu_mem_used_MB', gpu_mem_used, step=i)
-                    pass
+                    with lock:
+                        print('get lock by sub-thread')
+                        log_metric('cpu_mem_used_GB_in_process_rss', memoryUse, step=i)
+                        log_metric('cpu_mem_used_GB_in_process_vms', memoryUse2, step=i)
+                        log_metric('cpu_util_used_percent', cpu_percent, step=i)
+                        log_metric('cpu_mem_used_percent', cpu_mem_used, step=i)
+                        log_metric("gpu_util", res.gpu, step=i)
+                        log_metric('gpu_mem_used_MB', gpu_mem_used, step=i)
+                        print('release lock by sub-thread')
                 except Exception as er:  # sometimes the sqlite database is locked by the main thread.
                     print(er, file=sys.stderr)
                     pass
