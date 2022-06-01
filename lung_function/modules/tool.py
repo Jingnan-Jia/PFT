@@ -10,7 +10,7 @@ import time
 from typing import Union, Tuple
 from medutils.medutils import icc
 from mlflow.tracking import MlflowClient
-
+import sys
 import numpy as np
 import nvidia_smi
 import pandas as pd
@@ -326,7 +326,7 @@ def record_gpu_info(outfile) -> Tuple:
         return None, None, None
 
 
-def record_cgpu_info(outfile) -> Tuple:
+def record_cgpu_info(outfile, cgpu_dt) -> Tuple:
     """Record GPU information to `outfile`.
 
     Args:
@@ -371,53 +371,59 @@ def record_cgpu_info(outfile) -> Tuple:
         # gpu_util = 0
         i = 0
         period = 2  # 2 seconds
-        cgpu_dt = {'step': [],
-            'cpu_mem_used_GB_in_process_rss': [],
-                   'cpu_mem_used_GB_in_process_vms': [],
-                   'cpu_util_used_percent': [],
-                   'cpu_mem_used_percent': [],
-                   'gpu_util': [],
-                   'gpu_mem_used_MB': [],
-                   }
+        # cgpu_dt = {'step': [],
+        #             'cpu_mem_used_GB_in_process_rss': [],
+        #            'cpu_mem_used_GB_in_process_vms': [],
+        #            'cpu_util_used_percent': [],
+        #            'cpu_mem_used_percent': [],
+        #            'gpu_util': [],
+        #            'gpu_mem_used_MB': [],
+        #            }
         while i<60*20:  # stop signal passed from t, monitor 20 minutes
             if t.do_run:
                 cgpu_dt['step'].append(i)
 
                 memoryUse = python_process.memory_info().rss / 2. ** 30  # memory use in GB...I think
-                cgpu_dt['cpu_mem_used_GB_in_process_rss'].append(memoryUse)
-                log_metric('cpu_mem_used_GB_in_process_rss', memoryUse, step=i)
+                cgpu_dt['q_cpu_mem_Gb_rss'].put(memoryUse)
+
 
                 memoryUse2 = python_process.memory_info().vms / 2. ** 30  # memory use in GB...I think
-                cgpu_dt['cpu_mem_used_GB_in_process_vms'].append(memoryUse2)
-                log_metric('cpu_mem_used_GB_in_process_vms', memoryUse2, step=i)
+                cgpu_dt['q_cpu_mem_Gb_vms'].put(memoryUse2)
 
                 cpu_percent = psutil.cpu_percent()
-                cgpu_dt['cpu_util_used_percent'].append(cpu_percent)
-                log_metric('cpu_util_used_percent', cpu_percent, step=i)
+                cgpu_dt['q_cpu_util_percent'].put(cpu_percent)
                 # gpu_mem = dict(psutil.virtual_memory()._asdict())
                 # log_params(gpu_mem)
                 cpu_mem_used = psutil.virtual_memory().percent
-                cgpu_dt['cpu_mem_used_percent'].append(cpu_mem_used)
-                log_metric('cpu_mem_used_percent', cpu_mem_used, step=i)
+                cgpu_dt['q_cpu_mem_percent'].put(cpu_mem_used)
 
                 res = nvidia_smi.nvmlDeviceGetUtilizationRates(handle)
                 # gpu_util += res.gpu
-                cgpu_dt['gpu_util'].append(res.gpu)
-                log_metric("gpu_util", res.gpu, step=i)
+                cgpu_dt['q_gpu_util'].put(res.gpu)
 
                 info = nvidia_smi.nvmlDeviceGetMemoryInfo(handle)
                 # gpu_mem_used = str(_bytes_to_megabytes(info.used)) + '/' + str(_bytes_to_megabytes(info.total))
                 gpu_mem_used = _bytes_to_megabytes(info.used)
-                cgpu_dt['gpu_mem_used_MB'].append(gpu_mem_used)
-                log_metric('gpu_mem_used_MB', gpu_mem_used, step=i)
+                cgpu_dt['q_gpu_mem_Mb'].put(gpu_mem_used)
 
+                try:
+                    # log_metric('cpu_mem_used_GB_in_process_rss', memoryUse, step=i)
+                    # log_metric('cpu_mem_used_GB_in_process_vms', memoryUse2, step=i)
+                    # log_metric('cpu_util_used_percent', cpu_percent, step=i)
+                    # log_metric('cpu_mem_used_percent', cpu_mem_used, step=i)
+                    # log_metric("gpu_util", res.gpu, step=i)
+                    # log_metric('gpu_mem_used_MB', gpu_mem_used, step=i)
+                    pass
+                except Exception as er:  # sometimes the sqlite database is locked by the main thread.
+                    print(er, file=sys.stderr)
+                    pass
                 time.sleep(period)
                 i += period
             else:
                 print('record_cgpu_info do_run is True, let stop the process')
                 break
         print('It is time to stop this process: record_cgpu_info')
-        return cgpu_dt
+        return None
         # gpu_util = gpu_util / 5
         # gpu_mem_usage = str(gpu_mem_used) + ' MB'
 

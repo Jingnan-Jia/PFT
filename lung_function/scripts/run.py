@@ -18,7 +18,7 @@ from queue import Queue
 import torch
 import torch.nn as nn
 import sqlite3
-
+import copy
 from lung_function.modules.datasets import all_loaders
 from lung_function.modules.loss import get_loss
 from lung_function.modules.networks import get_net_3d
@@ -147,8 +147,20 @@ class Run:
                 torch.save(self.net.state_dict(), self.mypath.model_fpath)
 
 
-def log_metrics_for_cgpu():
-    pass
+def log_metrics_for_cgpu(cgpu_dt):
+    t0 = time.time()
+    size = cgpu_dt['step'].qsize()
+    while size:
+        for i in cgpu_dt['step']:
+            log_metric('cpu_mem_used_GB_in_process_rss', cgpu_dt['q_cpu_mem_Gb_rss'].get(), step=i)
+            log_metric('cpu_mem_used_GB_in_process_vms', cgpu_dt['q_cpu_mem_Gb_vms'].get(), step=i)
+            log_metric('cpu_util_used_percent', cgpu_dt['q_cpu_util_percent'].get(), step=i)
+            log_metric('cpu_mem_used_percent', cgpu_dt['q_cpu_mem_percent'].get(), step=i)
+            log_metric("gpu_util", cgpu_dt['q_gpu_util'].get(), step=i)
+            log_metric('gpu_mem_used_MB', cgpu_dt['q_gpu_mem_Mb'].get(), step=i)
+
+        print(f'log_metrics_for_cgpu loged {i} steps, which cost {time.time() - t0} seconds.')
+
 
 def run(args):
     myrun = Run(args)
@@ -157,8 +169,10 @@ def run(args):
         save_pred = True
         for mode in infer_modes:
             myrun.step(mode,  0,  save_pred)
+        log_metrics_for_cgpu(cgpu_dt)
     else: # 'train' or 'continue train'
         for i in range(args.epochs):  # 20000 epochs
+            log_metrics_for_cgpu(cgpu_dt)
             myrun.step('train', i)
             if i % args.valid_period == 0:  # run the validation
                 myrun.step('valid',  i)
@@ -171,7 +185,7 @@ def run(args):
                 save_pred = True
                 for mode in infer_modes:
                     myrun.step(mode, i, save_pred)
-            log_metrics_for_cgpu()
+
 
     mypath = PFTPath(args.id, check_id_dir=False, space=args.ct_sp)
     modes = ['train', 'trainnoaug', 'valid', 'test']
@@ -197,9 +211,24 @@ if __name__ == "__main__":
 
     mlflow.set_experiment("lung_fun_db15")
     id = record_1st("results/record.log")  # write super parameters from set_args.py to record file.
-    que = Queue()
+    cgpu_dt = {}
+    q_cpu_mem_rss = Queue()
+    q_cpu_mem_vms = Queue()
+    q_cpu_util_percent = Queue()
+    q_cpu_mem_percent = Queue()
+    q_gpu_util = Queue()
+    q_gpu_mem_Mb = Queue()
+    cgpu_dt = {'step': Queue(),
+                'q_cpu_mem_Gb_rss': Queue(),
+               'q_cpu_mem_Gb_vms': Queue(),
+               'q_cpu_util_percent': Queue(),
+               'q_cpu_mem_percent': Queue(),
+               'q_gpu_util': Queue(),
+               'q_gpu_mem_Mb': Queue()
+               }
+
     with mlflow.start_run(run_name=str(id), tags={"mlflow.note.content": args.remark}):
-        p1 = threading.Thread(target=record_cgpu_info, args=(args.outfile,))
+        p1 = threading.Thread(target=record_cgpu_info, args=(args.outfile, cgpu_dt))
         p1.start()
         # p2 = threading.Thread(target=record_artifacts, args=(args.outfile,))
         # p2.start()
