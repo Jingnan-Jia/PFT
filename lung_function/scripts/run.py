@@ -8,7 +8,7 @@ import sys
 from typing import List
 
 sys.path.append("../..")
-from mlflow import log_metric, log_param, log_params
+from mlflow import log_metric, log_metrics, log_param, log_params
 import mlflow
 import threading
 import time
@@ -38,9 +38,19 @@ def thread_safe(func):
     return thread_safe_fun
 
 
-log_metric = thread_safe(log_metric)
-log_param = thread_safe(log_param)
-log_params = thread_safe(log_params)
+def try_func(func):
+    def _try_fun(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except Exception as err:
+            print(err, file=sys.stderr)
+            pass
+    return _try_fun
+
+
+log_metric = try_func(log_metric)
+log_metrics = try_func(log_metrics)
+
 
 class Run:
     def __init__(self, args):
@@ -234,7 +244,7 @@ if __name__ == "__main__":
         args.id = id  # do not need to pass id seperately to the latter function
         log_params(vars(args))
 
-        p1 = threading.Thread(target=record_cgpu_info, args=(args.outfile, global_lock))
+        p1 = threading.Thread(target=record_cgpu_info, args=(args.outfile))
         p1.start()
         # p2 = threading.Thread(target=record_artifacts, args=(args.outfile,))
         # p2.start()

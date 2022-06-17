@@ -35,9 +35,22 @@ import nvidia_smi
 import pandas as pd
 from filelock import FileLock
 from pathlib import Path
-from mlflow import log_metric, log_param, log_artifacts, log_params
 import psutil
-from mlflow import log_metric, log_param, start_run, end_run, log_params, log_artifact
+from mlflow import log_metric, log_metrics, log_param, start_run, end_run, log_params, log_artifact
+
+def try_func(func):
+    def _try_fun(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except Exception as err:
+            print(err, file=sys.stderr)
+            pass
+    return _try_fun
+
+
+log_metric = try_func(log_metric)
+log_metrics = try_func(log_metrics)
+
 
 def sampler_by_disext(tr_y, sys_ratio=None) -> WeightedRandomSampler:
     """Balanced sampler according to score distribution of disext.
@@ -420,22 +433,23 @@ def record_cgpu_info(outfile, lock) -> Tuple:
                 # gpu_mem_used = str(_bytes_to_megabytes(info.used)) + '/' + str(_bytes_to_megabytes(info.total))
                 gpu_mem_used = _bytes_to_megabytes(info.used)
                 # q_gpu_mem_Mb.put(gpu_mem_used)
+                dt = {'cpu_mem_used_GB_in_process_rss': memoryUse,
+                      'cpu_mem_used_GB_in_process_vms': memoryUse2,
+                      'cpu_util_used_percent': cpu_percent,
+                      'cpu_mem_used_percent': cpu_mem_used,
+                      "gpu_util": res.gpu,
+                      'gpu_mem_used_MB': gpu_mem_used}
+                # try:
+                    # with lock:
+                    # print('get lock by sub-thread')
+                    # time.sleep(1)
 
-                try:
-                    with lock:
-                        print('get lock by sub-thread')
-                        time.sleep(1)
-                        log_metric('cpu_mem_used_GB_in_process_rss', memoryUse, step=i)
-                        log_metric('cpu_mem_used_GB_in_process_vms', memoryUse2, step=i)
-                        log_metric('cpu_util_used_percent', cpu_percent, step=i)
-                        log_metric('cpu_mem_used_percent', cpu_mem_used, step=i)
-                        log_metric("gpu_util", res.gpu, step=i)
-                        log_metric('gpu_mem_used_MB', gpu_mem_used, step=i)
-                        print('release lock by sub-thread')
-                        time.sleep(1)
-                except Exception as er:  # sometimes the sqlite database is locked by the main thread.
-                    print(er, file=sys.stderr)
-                    pass
+                log_metrics(dt, step=i)
+                    # print('release lock by sub-thread')
+                    # time.sleep(1)
+                # except Exception as er:  # sometimes the sqlite database is locked by the main thread.
+                #     print(er, file=sys.stderr)
+                #     pass
                 time.sleep(period-2)
                 i += period
             else:
