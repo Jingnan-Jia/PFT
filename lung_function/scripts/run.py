@@ -260,7 +260,7 @@ if __name__ == "__main__":
         # p2.start()
         for fold in [1, 2, 3, 4]:
             id = record_1st(record_fpath)  # write super parameters from set_args.py to record file.
-            with mlflow.start_run(run_name=str(id) + '_fold_' + str(fold), tags={"mlflow.note.content": f"fold: {fold}"}):
+            with mlflow.start_run(run_name=str(id) + '_fold_' + str(fold), tags={"mlflow.note.content": f"fold: {fold}"}, nested=True):
                 args.fold = fold
                 args.id = id  # do not need to pass id seperately to the latter function
                 run(args)
