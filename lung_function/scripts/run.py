@@ -218,7 +218,8 @@ if __name__ == "__main__":
 
 
     mlflow.set_experiment("lung_fun_db15")
-    id = record_1st("results/record.log")  # write super parameters from set_args.py to record file.
+    record_fpath = "results/record.log"
+    id = record_1st(record_fpath)  # write super parameters from set_args.py to record file.
     # cgpu_dt = {}
     # q_step = Queue()
     # q_cpu_mem_rss = Queue()
@@ -238,17 +239,31 @@ if __name__ == "__main__":
     #            }
 
     with mlflow.start_run(run_name=str(id), tags={"mlflow.note.content": args.remark}):
-
-
         args.id = id  # do not need to pass id seperately to the latter function
-        log_params(vars(args))
+        # log_params(vars(args))
+        #
+        # p1 = threading.Thread(target=record_cgpu_info, args=(args.outfile, ))
+        # p1.start()
+        # # p2 = threading.Thread(target=record_artifacts, args=(args.outfile,))
+        # # p2.start()
+        #
+        # run(args)
+        #
+        #
+        tmp_args_dt = vars(args)
+        tmp_args_dt['fold'] = 'all'
+        log_params(tmp_args_dt)
 
         p1 = threading.Thread(target=record_cgpu_info, args=(args.outfile, ))
         p1.start()
         # p2 = threading.Thread(target=record_artifacts, args=(args.outfile,))
         # p2.start()
-
-        run(args)
+        for fold in [1, 2, 3, 4]:
+            id = record_1st(record_fpath)  # write super parameters from set_args.py to record file.
+            with mlflow.start_run(run_name=str(id) + '_fold_' + str(fold), tags={"mlflow.note.content": f"fold: {fold}"}):
+                args.fold = fold
+                args.id = id  # do not need to pass id seperately to the latter function
+                run(args)
 
         p1.do_run = False  # stop the thread
         # p2.do_run = False  # stop the thread
