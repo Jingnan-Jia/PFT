@@ -72,15 +72,16 @@ def metrics(pred_fpath, label_fpath):
     lower_y_ls, upper_y_ls = [], []
     lower_x_ls, upper_x_ls = [], []
 
-    fig = plt.figure(figsize=(15, 4))
-    fig_2 = plt.figure(figsize=(15, 5))
-    fig_3 = plt.figure(figsize=(15, 5))
-
-
-    if len(df_label.columns) == 3:
-        row_nb, col_nb = 1, 3
+    row_nb = 1
+    col_nb = len(df_label.columns)
+    height_fig = 5
+    length_fig = height_fig * col_nb
+    if col_nb < 10:
+        fig = plt.figure(figsize=(length_fig, height_fig))
+        fig_2 = plt.figure(figsize=(length_fig, height_fig))
+        fig_3 = plt.figure(figsize=(length_fig, height_fig))
     else:
-        raise Exception(f'the columns number is not 3, it is {len(df_label.columns)} ', df_label.columns)
+        raise Exception(f"the columns number is greater than 10: {df_label.columns}")
 
     basename = os.path.dirname(pred_fpath)
     prefix = pred_fpath.split("/")[-1].split("_")[0]
@@ -165,6 +166,8 @@ def metrics(pred_fpath, label_fpath):
     for i in range(row_nb * col_nb):
         if df_label.columns[i] == 'DLCO_SB':
             limitx = 15  # max value of FVC
+        elif df_label.columns[i] == 'TLC_He':
+            limitx = 12
         else:
             limitx = 7  # max value of FEV1 and DLCO_SB
 

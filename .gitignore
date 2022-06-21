@@ -6,3 +6,5 @@ lung_function/modules/__pycache__/
 *.pyc
 .neptune/
 .idea
+*.db
+*.csv

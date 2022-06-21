@@ -18,7 +18,6 @@ import torch
 from filelock import FileLock
 from torch.utils.data import WeightedRandomSampler
 
-from lung_function.modules.confusion_test import confusion
 import threading
 from pathlib import Path
 
@@ -354,7 +353,7 @@ def record_gpu_info(outfile) -> Tuple:
 #         print(f'log_metrics_for_cgpu loged {size} steps, which cost {time.time() - t0} seconds.')
 #
 
-def record_cgpu_info(outfile, lock) -> Tuple:
+def record_cgpu_info(outfile) -> Tuple:
     """Record GPU information to `outfile`.
 
     Args:
@@ -376,8 +375,8 @@ def record_cgpu_info(outfile, lock) -> Tuple:
     t.do_run = True
 
     if outfile:
-        cpu_count = psutil.cpu_count()
-        log_param('cpu_count', cpu_count)
+        cpu_allocated = len(psutil.Process().cpu_affinity())
+        log_param('cpu_allocated', cpu_allocated)
 
         pid = os.getpid()
         python_process = psutil.Process(pid)
@@ -398,7 +397,7 @@ def record_cgpu_info(outfile, lock) -> Tuple:
         # log_dict['gpu_mem_usage'] = gpu_mem_usage
         # gpu_util = 0
         i = 0
-        period = 4  # 2 seconds
+        period = 2  # 2 seconds
         # cgpu_dt = {'step': [],
         #             'cpu_mem_used_GB_in_process_rss': [],
         #            'cpu_mem_used_GB_in_process_vms': [],
@@ -450,7 +449,7 @@ def record_cgpu_info(outfile, lock) -> Tuple:
                 # except Exception as er:  # sometimes the sqlite database is locked by the main thread.
                 #     print(er, file=sys.stderr)
                 #     pass
-                time.sleep(period-2)
+                time.sleep(period)
                 i += period
             else:
                 print('record_cgpu_info do_run is True, let stop the process')

@@ -17,7 +17,6 @@ from medutils import medutils
 from queue import Queue
 import torch
 import torch.nn as nn
-import sqlite3
 import copy
 from lung_function.modules.datasets import all_loaders
 from lung_function.modules.loss import get_loss
@@ -244,7 +243,7 @@ if __name__ == "__main__":
         args.id = id  # do not need to pass id seperately to the latter function
         log_params(vars(args))
 
-        p1 = threading.Thread(target=record_cgpu_info, args=(args.outfile))
+        p1 = threading.Thread(target=record_cgpu_info, args=(args.outfile, ))
         p1.start()
         # p2 = threading.Thread(target=record_artifacts, args=(args.outfile,))
         # p2.start()

@@ -40,7 +40,7 @@ def get_args():
     parser.add_argument('--ct_sp', help='space', type=str, default='1.5')
     parser.add_argument('--kfold_seed', help='kfold_seed', type=int, default=711)
 
-    parser.add_argument('--target', help='target prediction', type=str, default='FVC-DLCO_SB-FEV 1')
+    parser.add_argument('--target', help='target prediction', type=str, default='FVC-DLCO_SB-FEV 1-TLC_He')
 
     parser.add_argument('--outfile', help='output file when running by script instead of pycharm', type=str)
     parser.add_argument('--hostname', help='hostname of the server', type=str)
