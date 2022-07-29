@@ -31,7 +31,7 @@ def get_args():
     parser.add_argument('--loss', choices=('mse', 'mae', 'smooth_mae', 'mse+mae', 'msehigher'), help='mode', type=str,
                         default='mse')
     parser.add_argument('--pretrained', choices=(1, 0), help='pretrained or not', type=int, default=0)
-    parser.add_argument('--epochs', help='total epochs', type=int, default=301)
+    parser.add_argument('--epochs', help='total epochs', type=int, default=1000)
     parser.add_argument('--weight_decay', help='L2 regularization', type=float,
                         default=0.0001)  # must be a float number !
     parser.add_argument('--lr', help='learning rate', type=float, default=0.0001)
@@ -40,7 +40,7 @@ def get_args():
     parser.add_argument('--ct_sp', help='space', type=str, default='1.5')
     parser.add_argument('--kfold_seed', help='kfold_seed', type=int, default=711)
 
-    parser.add_argument('--target', help='target prediction', type=str, default='FVC-DLCO_SB-FEV 1-TLC_He')
+    parser.add_argument('--target', help='target prediction', type=str, default='FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight-DLCOc_SB-FEV1/pred-FVC/pred-TLC/pred')
 
     parser.add_argument('--outfile', help='output file when running by script instead of pycharm', type=str)
     parser.add_argument('--hostname', help='hostname of the server', type=str)

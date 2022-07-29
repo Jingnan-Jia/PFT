@@ -76,17 +76,25 @@ def metrics(pred_fpath, label_fpath):
     col_nb = len(df_label.columns)
     height_fig = 5
     length_fig = height_fig * col_nb
-    if col_nb < 10:
-        fig = plt.figure(figsize=(length_fig, height_fig))
-        fig_2 = plt.figure(figsize=(length_fig, height_fig))
-        fig_3 = plt.figure(figsize=(length_fig, height_fig))
-    else:
-        raise Exception(f"the columns number is greater than 10: {df_label.columns}")
+    # if col_nb < 10:
+    fig = plt.figure(figsize=(length_fig, height_fig))
+    fig_2 = plt.figure(figsize=(length_fig, height_fig))
+    fig_3 = plt.figure(figsize=(length_fig, height_fig))
+    # else:
+    #     raise Exception(f"the columns number is greater than 10: {df_label.columns}")
 
     basename = os.path.dirname(pred_fpath)
     prefix = pred_fpath.split("/")[-1].split("_")[0]
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22',
-              '#17becf']
+    if  col_nb <= 11:
+        colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22',
+                  '#17becf', '#808000']
+    elif col_nb <= 19:
+        colors = ['#7f0000', '#808000', '#3cb371', '#7f007f', '#008080', '#7f007f', '#ff0000', '#ff8c00', '#ffd700',
+                  '#0000cd',
+                  '#00ff7f', '#00ffff', '#adff2f', '#00bfff', '#ff00ff', '#f0e68c', '#dda0dd', '#ff1493', '#ffa07a',
+                  ]
+    else:
+        raise Exception(f"the columns number is greater than 20: {df_label.columns}")
 
     for plot_id, column in enumerate(df_label.columns):
         label = df_label[column].to_numpy().reshape(-1, 1)

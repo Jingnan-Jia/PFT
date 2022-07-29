@@ -49,8 +49,8 @@ def xformd(mode, z_size: int = 192, y_size: int = 256, x_size: int = 256, target
 def clean_data(pft_df, data_dir):
     pft_df.drop(pft_df[np.isnan(pft_df.DLCO_SB)].index, inplace=True)
     pft_df.drop(pft_df[pft_df.DLCO_SB == 0].index, inplace=True)
-    pft_df.drop(pft_df[np.isnan(pft_df['FEV 1'])].index, inplace=True)
-    pft_df.drop(pft_df[pft_df['FEV 1'] == 0].index, inplace=True)
+    pft_df.drop(pft_df[np.isnan(pft_df['FEV1'])].index, inplace=True)
+    pft_df.drop(pft_df[pft_df['FEV1'] == 0].index, inplace=True)
     pft_df.drop(pft_df[np.isnan(pft_df.DateDF_abs)].index, inplace=True)
     pft_df.drop(pft_df[pft_df.DateDF_abs > 10].index, inplace=True)
 

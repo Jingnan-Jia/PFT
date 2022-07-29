@@ -263,6 +263,8 @@ if __name__ == "__main__":
             with mlflow.start_run(run_name=str(id) + '_fold_' + str(fold), tags={"mlflow.note.content": f"fold: {fold}"}, nested=True):
                 args.fold = fold
                 args.id = id  # do not need to pass id seperately to the latter function
+                tmp_args_dt = vars(args)
+                log_params(tmp_args_dt)
                 run(args)
 
         p1.do_run = False  # stop the thread
