@@ -19,6 +19,7 @@ import torch
 import torch.nn as nn
 import copy
 import statistics
+from mlflow.tracking import MlflowClient
 
 from lung_function.modules.datasets import all_loaders
 from lung_function.modules.loss import get_loss
@@ -203,7 +204,10 @@ def run(args):
     pred_ls = [mypath.save_pred_fpath(mode) for mode in modes]
 
     for pred_fpath, label_fpath in zip(pred_ls, label_ls):
-        metrics(pred_fpath, label_fpath)
+        r_p_value = metrics(pred_fpath, label_fpath)
+        log_params(r_p_value)
+        print('r_p_value:', r_p_value)
+
         icc_value = icc(label_fpath, pred_fpath)
         log_params(icc_value)
         print('icc:', icc_value)
@@ -211,34 +215,38 @@ def run(args):
     print('Finish all things!')
 
 
-def average_all_folds(id_ls, key='params'):
+def average_all_folds(id_ls, current_id, key='params'):
+    current_run = retrive_run(experiment=experiment, reload_id=current_id)
 
     all_dt = {}
     for id in id_ls:
         mlflow_run = retrive_run(experiment=experiment, reload_id=id)
         if key == 'params':
             target_dt = mlflow_run.data.params
+            current_dt = current_run.data.params
         elif key == 'metrics':
             target_dt = mlflow_run.data.metrics
+            current_dt = current_run.data.metrics
         else:
             raise Exception(f"Expected key of 'params' or 'metrics', but got key: {key}")
 
         for k, v in target_dt.items():
-            if k not in all_dt:
-                all_dt[k] = []
-            if type(all_dt[k]) is not list:  # this is a value, not a list (see bellow)
-                continue
+            if k not in current_dt:  # re-writing parameters in mlflow is not allowed
+                if k not in all_dt:
+                    all_dt[k] = []
+                if type(all_dt[k]) is not list:  # this is a value, not a list (see bellow)
+                    continue
 
-            try:
-                all_dt[k].append(float(v))
-            except:
-                all_dt[k] = v  # can not be converted to numbers which can not be averaged
+                try:
+                    all_dt[k].append(float(v))
+                except:
+                    all_dt[k] = v  # can not be converted to numbers which can not be averaged
 
-    all_dt = {k: statistics.mean(v) for k, v in all_dt.items()}
+    all_dt = {k: statistics.mean(v) if type(v) is list else v for k, v in all_dt.items() }
 
     return all_dt
 
-def log_metrics_all_folds_average(id_ls):
+def log_metrics_all_folds_average(id_ls, id):
     """
     Get the 4 folds metrics and parameters
     Average them
@@ -248,10 +256,10 @@ def log_metrics_all_folds_average(id_ls):
 
 
     # average parameters
-    param_dt = average_all_folds(id_ls, key='params')
+    param_dt = average_all_folds(id_ls, id, key='params')
     log_params(param_dt)
 
-    metric_dt =average_all_folds(id_ls, key='metrics')
+    metric_dt =average_all_folds(id_ls, id, key='metrics')
     log_metrics(metric_dt, 0)
 
 
@@ -283,8 +291,15 @@ if __name__ == "__main__":
     #            'q_gpu_util': Queue(),
     #            'q_gpu_mem_Mb': Queue()
     #            }
-
+    # client = MlflowClient()
+    # current_id = 324
+    # run_ls = client.search_runs(experiment_ids=[experiment.experiment_id],
+    #                             filter_string=f"params.id LIKE '%{current_id}%'")
+    # run_ = run_ls[0]
+    # run_id = run_.info.run_id
     with mlflow.start_run(run_name=str(id), tags={"mlflow.note.content": args.remark}):
+    # with mlflow.start_run(run_id=run_id, tags={"mlflow.note.content": args.remark}):
+        current_id = id
         args.id = id  # do not need to pass id seperately to the latter function
         # mlflow_run = retrive_run(experiment=experiment, reload_id=id)
         # if args.pretrained_jobid != 0:
@@ -308,6 +323,7 @@ if __name__ == "__main__":
         p1.start()
         # p2 = threading.Thread(target=record_artifacts, args=(args.outfile,))
         # p2.start()
+        # id_ls = [325, 328, 331, 334]
         id_ls = []
         for fold in [1, 2, 3, 4]:
             id = record_1st(record_fpath)  # write super parameters from set_args.py to record file.
@@ -319,7 +335,7 @@ if __name__ == "__main__":
                 log_params(tmp_args_dt)
                 run(args)
 
-        log_metrics_all_folds_average(id_ls)
+        log_metrics_all_folds_average(id_ls, current_id)
         p1.do_run = False  # stop the thread
         # p2.do_run = False  # stop the thread
         p1.join()

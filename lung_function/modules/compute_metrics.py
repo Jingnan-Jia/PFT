@@ -64,6 +64,7 @@ def icc(label_fpath, pred_fpath):
     return icc_dict
 
 def metrics(pred_fpath, label_fpath):
+    r_dict, p_dict = {}, {}
     df_pred = pd.read_csv(pred_fpath)
     df_label = pd.read_csv(label_fpath)
     print('len_df_label', len(df_label))
@@ -154,6 +155,9 @@ def metrics(pred_fpath, label_fpath):
         # plot linear regression line
         m, b = np.polyfit(label, pred, 1)
         slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(label, pred)
+        r_dict['r_' + prefix + '_' + column] = r_value
+        p_dict['p_of_r' + prefix + '_' + column] = p_value
+
         x_reference = np.array([0, 256])
         print(column, 'linear regression m, b:', m, b)
         print(column, 'linear regression m, b, r^2:', slope, intercept, r_value ** 2)
@@ -204,6 +208,9 @@ def metrics(pred_fpath, label_fpath):
     fig_3.tight_layout()
     fig_3.savefig(basename + '/' + prefix + '_scatter_ci.png')
     plt.close(fig_3)
+
+    all_dt = {**r_dict, **p_dict}
+    return all_dt
 
 if __name__ == "__main__":
     # pred_fpath = "/data/jjia/ssc_scoring/ssc_scoring/dataset/observer_agreement/16_patients/LKT2_16patients.csv"
