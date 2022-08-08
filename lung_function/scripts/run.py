@@ -18,12 +18,14 @@ from queue import Queue
 import torch
 import torch.nn as nn
 import copy
+import statistics
+
 from lung_function.modules.datasets import all_loaders
 from lung_function.modules.loss import get_loss
 from lung_function.modules.networks import get_net_3d
 from lung_function.modules.path import PFTPath
 from lung_function.modules.set_args import get_args
-from lung_function.modules.tool import record_1st, record_artifacts, record_cgpu_info
+from lung_function.modules.tool import record_1st, record_artifacts, record_cgpu_info, retrive_run
 from lung_function.modules.compute_metrics import icc, metrics
 args = get_args()
 global_lock = threading.Lock()
@@ -209,6 +211,50 @@ def run(args):
     print('Finish all things!')
 
 
+def average_all_folds(id_ls, key='params'):
+
+    all_dt = {}
+    for id in id_ls:
+        mlflow_run = retrive_run(experiment=experiment, reload_id=id)
+        if key == 'params':
+            target_dt = mlflow_run.data.params
+        elif key == 'metrics':
+            target_dt = mlflow_run.data.metrics
+        else:
+            raise Exception(f"Expected key of 'params' or 'metrics', but got key: {key}")
+
+        for k, v in target_dt.items():
+            if k not in all_dt:
+                all_dt[k] = []
+            if type(all_dt[k]) is not list:  # this is a value, not a list (see bellow)
+                continue
+
+            try:
+                all_dt[k].append(float(v))
+            except:
+                all_dt[k] = v  # can not be converted to numbers which can not be averaged
+
+    all_dt = {k: statistics.mean(v) for k, v in all_dt.items()}
+
+    return all_dt
+
+def log_metrics_all_folds_average(id_ls):
+    """
+    Get the 4 folds metrics and parameters
+    Average them
+    Log average values to the parent mlflow
+    """
+    # average metrics
+
+
+    # average parameters
+    param_dt = average_all_folds(id_ls, key='params')
+    log_params(param_dt)
+
+    metric_dt =average_all_folds(id_ls, key='metrics')
+    log_metrics(metric_dt, 0)
+
+
 if __name__ == "__main__":
     # mlflow.set_tracking_uri("http://10.161.27.235:5000")
     mlflow.set_tracking_uri("http://nodelogin02:5000")
@@ -217,7 +263,7 @@ if __name__ == "__main__":
     # mlflow.set_tracking_uri('http://localhost:5000')
 
 
-    mlflow.set_experiment("lung_fun_db15")
+    experiment = mlflow.set_experiment("lung_fun_db15")
     record_fpath = "results/record.log"
     id = record_1st(record_fpath)  # write super parameters from set_args.py to record file.
     # cgpu_dt = {}
@@ -240,6 +286,10 @@ if __name__ == "__main__":
 
     with mlflow.start_run(run_name=str(id), tags={"mlflow.note.content": args.remark}):
         args.id = id  # do not need to pass id seperately to the latter function
+        # mlflow_run = retrive_run(experiment=experiment, reload_id=id)
+        # if args.pretrained_jobid != 0:
+        #     mlflow_run = retrive_run(experiment=experiment, reload_jobid=args.reload_jobid)
+        #     args.pretrained_id = mlflow_run.data.params['id']
         # log_params(vars(args))
         #
         # p1 = threading.Thread(target=record_cgpu_info, args=(args.outfile, ))
@@ -258,8 +308,10 @@ if __name__ == "__main__":
         p1.start()
         # p2 = threading.Thread(target=record_artifacts, args=(args.outfile,))
         # p2.start()
+        id_ls = []
         for fold in [1, 2, 3, 4]:
             id = record_1st(record_fpath)  # write super parameters from set_args.py to record file.
+            id_ls.append(id)
             with mlflow.start_run(run_name=str(id) + '_fold_' + str(fold), tags={"mlflow.note.content": f"fold: {fold}"}, nested=True):
                 args.fold = fold
                 args.id = id  # do not need to pass id seperately to the latter function
@@ -267,6 +319,7 @@ if __name__ == "__main__":
                 log_params(tmp_args_dt)
                 run(args)
 
+        log_metrics_all_folds_average(id_ls)
         p1.do_run = False  # stop the thread
         # p2.do_run = False  # stop the thread
         p1.join()

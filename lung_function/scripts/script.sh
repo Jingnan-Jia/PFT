@@ -66,5 +66,5 @@ ENDSSH
 echo "Hello, I am back in $(hostname) to run the code"
 
 # shellcheck disable=SC2046
-idx=0; export CUDA_VISIBLE_DEVICES=$idx; stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --ct_sp='1.5' --net='vgg11_3d' --crop_foreground=True --y_size=240 --x_size=240 --z_size=240 --target='DLCOc_SB / VA-FEV1/pred-FVC/pred-TLC/pred' --remark="1000 epochs, 1.5, crop_foreground, pad_ratio = 1.5, no gaussian noise,"
+idx=0; export CUDA_VISIBLE_DEVICES=$idx; stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --ct_sp='1.5' --net='vgg11_3d' --crop_foreground=True --y_size=240 --x_size=240 --z_size=240 --target='DLCOc_SB-FEV1/pred-FVC/pred-TLC/pred' --remark="10 epochs, 1.5, crop_foreground, pad_ratio = 1.5, no gaussian noise,"
 #idx=0; stdbuf -oL python -u test_multi_threads.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id}

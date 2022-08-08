@@ -51,6 +51,29 @@ log_metric = try_func(log_metric)
 log_metrics = try_func(log_metrics)
 
 
+def retrive_run(experiment, reload_id):
+    # using reload_id to retrive the mlflow run
+    client = MlflowClient()
+    run_ls = client.search_runs(experiment_ids=[experiment.experiment_id],
+                                filter_string=f"params.id LIKE '%{reload_id}%'")
+    if len(run_ls) == 1:
+        run = run_ls[0]
+        # print(run)
+    elif len(run_ls) > 1:
+        # flag = False
+        # for r in run_ls:
+        #     if 'id' in r.data.params:
+        #         run = r
+        #         flag = True
+        #
+        # if flag is False:
+        raise Exception(
+            f"There are several runs which match the patterns params.id LIKE '%{reload_id}%':")
+    else:
+        raise Exception(f"There are no runs which match the patterns params.id LIKE '%{reload_id}%'")
+    return run  # run.data.params is a dict
+
+
 def sampler_by_disext(tr_y, sys_ratio=None) -> WeightedRandomSampler:
     """Balanced sampler according to score distribution of disext.
 
