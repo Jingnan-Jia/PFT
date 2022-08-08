@@ -92,7 +92,7 @@ def all_loaders(data_dir, label_fpath, args):
     tr_pt_idx, vd_pt_idx = kf_list[args.fold - 1]
     tr_data = tr_vd_data[tr_pt_idx]
     vd_data = tr_vd_data[vd_pt_idx]
-    tr_data, vd_data, ts_data = tr_data[:5], vd_data[:5], ts_data[:5]
+    # tr_data, vd_data, ts_data = tr_data[:5], vd_data[:5], ts_data[:5]
     # trxformd = xformd('train')
     # vdxformd = xformd('valid')
     # tsxformd = xformd('test')
