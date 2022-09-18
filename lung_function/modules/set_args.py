@@ -20,8 +20,9 @@ def get_args():
     parser.add_argument('--pretrained_id', help='id used for inference, or continue_train', type=int, default=0)
     # parser.add_argument('--reload_jobid', help='jobid used for inference, or continue_train', type=int, default=0)
 
-    parser.add_argument('--net', choices=('vgg11_3d','vgg16_3d','vgg19_3d', 'r3d_resnet', 'cnn3fc1', 'cnn4fc2', 'cnn5fc2', 'cnn6fc2',
-                                          'cnn2fc1', 'cnn3fc2'), help='network name', type=str, default='vgg11_3d')
+    parser.add_argument('--net', choices=('vgg11_3d','vit3', 'vgg16_3d','vgg19_3d', 'r3d_resnet', 'cnn3fc1', 'cnn4fc2',
+                                          'cnn5fc2', 'cnn6fc2',
+                                          'cnn2fc1', 'cnn3fc2'), help='network name', type=str, default='vgg16_3d')
     parser.add_argument('--fc2_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
                         default=1024)
     parser.add_argument('--fc1_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
@@ -42,7 +43,8 @@ def get_args():
     parser.add_argument('--ct_sp', help='space', type=str, default='1.5')
     parser.add_argument('--kfold_seed', help='kfold_seed', type=int, default=711)
 
-    parser.add_argument('--target', help='target prediction', type=str, default='FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight-DLCOc_SB-FEV1/pred-FVC/pred-TLC/pred')
+    parser.add_argument('--target', help='target prediction', type=str,
+                        default='FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight-DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred')
 
     parser.add_argument('--outfile', help='output file when running by script instead of pycharm', type=str)
     parser.add_argument('--hostname', help='hostname of the server', type=str)

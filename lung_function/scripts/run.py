@@ -59,7 +59,7 @@ class Run:
         self.mypath = PFTPath(args.id, check_id_dir=False, space=args.ct_sp)
         self.device = torch.device("cuda")
         self.target = [i.lstrip() for i in args.target.split('-')]
-        self.net = get_net_3d(name=args.net, nb_cls=len(self.target)) # output FVC and FEV1
+        self.net = get_net_3d(name=args.net, nb_cls=len(self.target), image_size=args.x_size) # output FVC and FEV1
         print('net:', self.net)
 
         net_parameters = count_parameters(self.net)
@@ -257,73 +257,53 @@ def log_metrics_all_folds_average(id_ls, id):
 
     # average parameters
     param_dt = average_all_folds(id_ls, id, key='params')
-    log_params(param_dt)
+    if len(param_dt) < 100:
+        log_params(param_dt)
 
+    elif len(param_dt) >= 100 and len(param_dt) < 200:
+        dt_1 = {k:param_dt[k] for i, k in enumerate(param_dt) if i < 100}
+        dt_2 = {k:param_dt[k] for i, k in enumerate(param_dt) if i >= 100}
+        log_params(dt_1)
+        log_params(dt_2)
+    else:
+        raise Exception(f"A batch logging request can contain at most 100 params. Got {len(param_dt)} params")
     metric_dt =average_all_folds(id_ls, id, key='metrics')
     log_metrics(metric_dt, 0)
 
 
 if __name__ == "__main__":
-    # mlflow.set_tracking_uri("http://10.161.27.235:5000")
     mlflow.set_tracking_uri("http://nodelogin02:5000")
-
-    # mlflow.set_tracking_uri('sqlite:///mlrunsdb15.db')  # bread down at some time
-    # mlflow.set_tracking_uri('http://localhost:5000')
-
-
     experiment = mlflow.set_experiment("lung_fun_db15")
     record_fpath = "results/record.log"
     id = record_1st(record_fpath)  # write super parameters from set_args.py to record file.
-    # cgpu_dt = {}
-    # q_step = Queue()
-    # q_cpu_mem_rss = Queue()
-    # q_cpu_mem_vms = Queue()
-    # q_cpu_util_percent = Queue()
-    # q_cpu_mem_percent = Queue()
-    # q_gpu_util = Queue()
-    # q_gpu_mem_Mb = Queue()
 
-    # cgpu_dt = {'q_step': Queue(),
-    #             'q_cpu_mem_Gb_rss': Queue(),
-    #            'q_cpu_mem_Gb_vms': Queue(),
-    #            'q_cpu_util_percent': Queue(),
-    #            'q_cpu_mem_percent': Queue(),
-    #            'q_gpu_util': Queue(),
-    #            'q_gpu_mem_Mb': Queue()
-    #            }
+
+    # if merge 4 fold results, uncommit the following code.
+    # From here ======================================================
+    # current_id = 427
+    # id_ls = [428, 431, 433, 435]
     # client = MlflowClient()
-    # current_id = 324
     # run_ls = client.search_runs(experiment_ids=[experiment.experiment_id],
     #                             filter_string=f"params.id LIKE '%{current_id}%'")
     # run_ = run_ls[0]
     # run_id = run_.info.run_id
-    with mlflow.start_run(run_name=str(id), tags={"mlflow.note.content": args.remark}):
     # with mlflow.start_run(run_id=run_id, tags={"mlflow.note.content": args.remark}):
-        current_id = id
+    #     args.id = id  # do not need to pass id seperately to the latter function
+
+    # to here =======================================================
+
+    with mlflow.start_run(run_name=str(id), tags={"mlflow.note.content": args.remark}):
         args.id = id  # do not need to pass id seperately to the latter function
-        # mlflow_run = retrive_run(experiment=experiment, reload_id=id)
-        # if args.pretrained_jobid != 0:
-        #     mlflow_run = retrive_run(experiment=experiment, reload_jobid=args.reload_jobid)
-        #     args.pretrained_id = mlflow_run.data.params['id']
-        # log_params(vars(args))
-        #
+
+        current_id = id
+
         # p1 = threading.Thread(target=record_cgpu_info, args=(args.outfile, ))
         # p1.start()
-        # # p2 = threading.Thread(target=record_artifacts, args=(args.outfile,))
-        # # p2.start()
-        #
-        # run(args)
-        #
-        #
+
         tmp_args_dt = vars(args)
         tmp_args_dt['fold'] = 'all'
         log_params(tmp_args_dt)
 
-        p1 = threading.Thread(target=record_cgpu_info, args=(args.outfile, ))
-        p1.start()
-        # p2 = threading.Thread(target=record_artifacts, args=(args.outfile,))
-        # p2.start()
-        # id_ls = [325, 328, 331, 334]
         id_ls = []
         for fold in [1, 2, 3, 4]:
             id = record_1st(record_fpath)  # write super parameters from set_args.py to record file.
@@ -336,8 +316,8 @@ if __name__ == "__main__":
                 run(args)
 
         log_metrics_all_folds_average(id_ls, current_id)
-        p1.do_run = False  # stop the thread
-        # p2.do_run = False  # stop the thread
-        p1.join()
-        # p2.join()
+
+        # p1.do_run = False  # stop the thread
+        # p1.join()
+
 
