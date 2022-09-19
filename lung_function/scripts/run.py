@@ -177,7 +177,7 @@ class Run:
 
 def run(args):
     myrun = Run(args)
-    infer_modes = ['train', 'trainnoaug', 'valid', 'test']
+    infer_modes = ['train', 'valid', 'test']
     if args.mode == 'infer':
         save_pred = True
         for mode in infer_modes:

@@ -45,8 +45,10 @@ class LoadDatad(Transform):
 
     def __call__(self, data: TransInOut) -> TransInOut:
         fpath = data['fpath']
+        print(f"loading {fpath}")
         x = load_itk(fpath, require_ori_sp=False)  # shape order: z, y, x
         y = np.array([data[i] for i in self.target])
+        # print(f"{fpath}, {y}")
         new_data = {'image': x.astype(np.float32),
                     'label': y.astype(np.float32)}
         if self.crop_foreground:
