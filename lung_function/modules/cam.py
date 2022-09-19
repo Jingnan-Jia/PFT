@@ -12,29 +12,23 @@ import torch.nn as nn
 import os
 import pandas as pd
 from tqdm import tqdm
+from lung_function.modules.path import PFTPath
+from lung_function.modules.set_args import get_args
+from lung_function.modules.networks import get_net_3d
 
-from ssc_scoring.mymodules.path import PathScore as Path
+args = get_args()
+
 
 class GradCAM():
     def __init__(self, eval_id):
-        self.eval_id = eval_id
-        self.mypath = Path(self.eval_id)
-
-
-        if torch.cuda.is_available():
-            self.device = torch.device("cuda")
-        else:
-            self.device = torch.device("cpu")
-
+        self.mypath = PFTPath(eval_id, check_id_dir=False, space=args.ct_sp)
+        self.device = torch.device("cuda")
+        self.target = [i.lstrip() for i in args.target.split('-')]
+        self.net = get_net_3d(name=args.net, nb_cls=len(self.target), image_size=args.x_size) # output FVC and FEV1
+        print('net:', self.net)
 
         self.grad_block = []
         self.fmap_block = []
-
-        self.net = models.vgg11_bn()
-        self.net.features[0] = nn.Conv2d(1, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))  # change in_features to 1
-        self.net.classifier[0] = torch.nn.Linear(in_features=512 * 7 * 7, out_features=1024)
-        self.net.classifier[3] = torch.nn.Linear(in_features=1024, out_features=1024)
-        self.net.classifier[6] = torch.nn.Linear(in_features=1024, out_features=3)
 
         self.net.load_state_dict(torch.load(self.mypath.model_fpath, map_location=self.device))
         self.net.to(self.device)
@@ -51,7 +45,7 @@ class GradCAM():
     def farward_hook(self, module, input, output):
         self.fmap_block.append(output)
 
-    def run(self, pat_id, pat_level):
+    def run(self, pat_id):
         pat_id_str = str(pat_id)
         if len(pat_id_str)==2:
             pat_id_str = '0' + pat_id_str
