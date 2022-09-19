@@ -78,12 +78,12 @@ class Run:
             self.net.load_state_dict(torch.load(pretrained_path.model_fpath, map_location=self.device))  # model_fpath need to exist
 
         self.BestMetricDt = {'trainLossEpochBest': 1000,
-                             'trainnoaugLossEpochBest': 1000,
+                             # 'trainnoaugLossEpochBest': 1000,
                             'validLossEpochBest': 1000,
                             'testLossEpochBest': 1000,
 
                             'trainMAEEpoch_AllBest': 1000,
-                             'trainnoaugMAEEpoch_AllBest': 1000,
+                             # 'trainnoaugMAEEpoch_AllBest': 1000,
                             'validMAEEpoch_AllBest': 1000,
                             'testMAEEpoch_AllBest': 1000,
 
@@ -199,7 +199,7 @@ def run(args):
 
 
     mypath = PFTPath(args.id, check_id_dir=False, space=args.ct_sp)
-    modes = ['train', 'trainnoaug', 'valid', 'test']
+    modes = infer_modes
     label_ls = [mypath.save_label_fpath(mode) for mode in modes]
     pred_ls = [mypath.save_pred_fpath(mode) for mode in modes]
 
