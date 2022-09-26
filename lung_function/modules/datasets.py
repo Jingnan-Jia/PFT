@@ -114,7 +114,7 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
     tr_pt_idx, vd_pt_idx = kf_list[args.fold - 1]
     tr_data = tr_vd_data[tr_pt_idx]
     vd_data = tr_vd_data[vd_pt_idx]
-
+    print(f"length of training data: {len(tr_data)}")
     if nb:
         tr_data, vd_data, ts_data = tr_data[:nb], vd_data[:nb], ts_data[:nb]
     # tr_data, vd_data, ts_data = tr_data[:5], vd_data[:5], ts_data[:5]
