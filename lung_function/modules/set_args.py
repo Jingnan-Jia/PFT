@@ -39,7 +39,7 @@ def get_args():
                         default=0.0001)  # must be a float number !
     parser.add_argument('--lr', help='learning rate', type=float, default=0.0001)
 
-    parser.add_argument('--batch_size', help='batch_size', type=int, default=1)
+    parser.add_argument('--batch_size', help='batch_size', type=int, default=5)
     parser.add_argument('--ct_sp', help='space', type=str, default='1.5')
     parser.add_argument('--kfold_seed', help='kfold_seed', type=int, default=711)
     parser.add_argument('--test_pat', help='testing patients', type=str, default='zhiwei77')
