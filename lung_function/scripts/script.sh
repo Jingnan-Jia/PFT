@@ -66,5 +66,5 @@ ENDSSH
 echo "Hello, I am back in $(hostname) to run the code"
 
 # shellcheck disable=SC2046
-idx=0; export CUDA_VISIBLE_DEVICES=$idx; stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --ct_sp='1.5' --net='vgg19_3d' --crop_foreground=True --y_size=240 --x_size=240 --z_size=240 --epochs=200 --target='FVC/predNew' --remark="fixed seed, correct foreground crop, padding and rescale, zhiwei77, corrected labels, 314 patients, no gaussian noise,"
+idx=0; export CUDA_VISIBLE_DEVICES=$idx; stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --ct_sp='1.5' --net='vgg19_3d' --crop_foreground=True --y_size=240 --x_size=240 --z_size=240 --epochs=200 --target='DLCOc/pred-FVC/predNew' --remark="fixed seed, correct foreground crop, padding and rescale, zhiwei77, corrected labels, 314 patients, no gaussian noise,"
 #idx=0; stdbuf -oL python -u test_multi_threads.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id}
