@@ -3,7 +3,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-gpu=6
 ##SBATCH -t 7-00:00:00
-#SBATCH --mem-per-gpu=40G
+#SBATCH --mem-per-gpu=80G
 #SBATCH -e results/logs/slurm-%j.err
 #SBATCH -o results/logs/slurm-%j.out
 ##SBATCH --mail-type=end

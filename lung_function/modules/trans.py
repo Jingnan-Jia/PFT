@@ -38,7 +38,7 @@ class LoadDatad(Transform):
         :func:`lung_function.modules.composed_trans.xformd_pos2score` and
         :func:`lung_function.modules.composed_trans.xformd_pos`
     """
-    def __init__(self, target, crop_foreground=False):
+    def __init__(self, target, crop_foreground=False, pad=False):
         super().__init__()
         self.target = [i.lstrip() for i in target.split('-')]
         self.crop_foreground = crop_foreground

@@ -21,6 +21,7 @@ from torch.utils.data import Dataset
 import monai
 from sklearn.model_selection import KFold
 from lung_function.modules.trans import LoadDatad, RandomCropForegroundd
+import os
 
 def xformd(mode, z_size: int = 192, y_size: int = 256, x_size: int = 256, target='FVC', crop_foreground=False):
     pad_ratio = 1.5
@@ -28,9 +29,12 @@ def xformd(mode, z_size: int = 192, y_size: int = 256, x_size: int = 256, target
     post_pad_size = [int(i * pad_ratio) for i in [z_size, y_size, x_size]]
 
     keys = ('image', 'lung_mask')
-    xforms = [LoadDatad(target=target, crop_foreground=crop_foreground), AddChanneld(keys=keys)]
-    xforms.extend([SpatialPadd(keys=keys, spatial_size=post_pad_size, mode='minimum'),
-                   ScaleIntensityRanged(keys=('image',), a_min=-1500, a_max=1500, b_min=-1, b_max=1, clip=True)])
+    if os.path.isdir():
+        xforms = [LoadDatad(target=target, crop_foreground=crop_foreground), AddChanneld(keys=keys)]
+        xforms.extend([SpatialPadd(keys=keys, spatial_size=post_pad_size, mode='minimum'),
+                       ScaleIntensityRanged(keys=('image',), a_min=-1500, a_max=1500, b_min=-1, b_max=1, clip=True)])
+    else:
+        xforms = [LoadDatad(target=target, crop_foreground=crop_foreground, pad=True), AddChanneld(keys=keys)]
     if mode == 'train':
         if crop_foreground:
             xforms.extend([RandomCropForegroundd(keys=keys, roi_size=[z_size, y_size, x_size], source_key='lung_mask')])
