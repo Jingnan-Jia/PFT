@@ -20,21 +20,29 @@ import pandas as pd
 from torch.utils.data import Dataset
 import monai
 from sklearn.model_selection import KFold
-from lung_function.modules.trans import LoadDatad, RandomCropForegroundd
+from lung_function.modules.trans import LoadDatad, SaveDatad, RandomCropForegroundd
 import os
 
-def xformd(mode, z_size: int = 192, y_size: int = 256, x_size: int = 256, target='FVC', crop_foreground=False):
-    pad_ratio = 1.5
-    log_param('pad_ratio', pad_ratio)
+PAD_DONE = True
+
+def xformd(mode, z_size: int = 192, y_size: int = 256, x_size: int = 256, pad_truncated_dir='tmp', target='FVC', crop_foreground=False, pad_ratio=1):
     post_pad_size = [int(i * pad_ratio) for i in [z_size, y_size, x_size]]
 
     keys = ('image', 'lung_mask')
-    if os.path.isdir():
+    global PAD_DONE
+    if not PAD_DONE or not os.path.isdir(pad_truncated_dir):
+        PAD_DONE = False
+        if not os.path.isdir(pad_truncated_dir):
+            os.makedirs(pad_truncated_dir)
         xforms = [LoadDatad(target=target, crop_foreground=crop_foreground), AddChanneld(keys=keys)]
-        xforms.extend([SpatialPadd(keys=keys, spatial_size=post_pad_size, mode='minimum'),
+        xforms.extend([SpatialPadd(keys='image', spatial_size=post_pad_size, mode='constant', constant_values=-1500),
+                       SpatialPadd(keys='lung_mask', spatial_size=post_pad_size, mode='constant',
+                                   constant_values= 0),
                        ScaleIntensityRanged(keys=('image',), a_min=-1500, a_max=1500, b_min=-1, b_max=1, clip=True)])
+        xforms.append(SaveDatad(pad_truncated_dir))
     else:
-        xforms = [LoadDatad(target=target, crop_foreground=crop_foreground, pad=True), AddChanneld(keys=keys)]
+        xforms = [LoadDatad(target=target, crop_foreground=crop_foreground), AddChanneld(keys=keys)]
+    # xforms.append()
     if mode == 'train':
         if crop_foreground:
             xforms.extend([RandomCropForegroundd(keys=keys, roi_size=[z_size, y_size, x_size], source_key='lung_mask')])
@@ -43,6 +51,9 @@ def xformd(mode, z_size: int = 192, y_size: int = 256, x_size: int = 256, target
         # xforms.extend([RandGaussianNoised(keys=keys, prob=0.5, mean=0, std=0.01)])
     else:
             xforms.extend([CenterSpatialCropd(keys=keys, roi_size=[z_size, y_size, x_size])])
+
+    # xforms.append(SaveDatad(pad_truncated_dir+"/patches_examples/" + mode))
+
     # ('pat_id', 'image', 'lung_mask', 'origin', 'spacing', 'label')
     xforms.extend([CastToTyped(keys = keys, dtype=np.float32),
                    ToTensord(keys = keys)])
@@ -73,12 +84,18 @@ def clean_data(pft_df, data_dir):
     return pft_df
 
 def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'test'), nb=None):
+
+    pad_truncated_dir = f"/home/jjia/data/dataset/lung_function/iso{args.ct_sp}/z{args.z_size}x{args.x_size}y{args.y_size}_pad_ratio{str(args.pad_ratio)}"
+
     label_excel = pd.read_excel(label_fpath, engine='openpyxl')
     label_excel = clean_data(label_excel, data_dir)
     # 3 labels for one level
     data = np.array(label_excel.to_dict('records'))  # nparray is easy for kfold split
     for d in data:
-        d['fpath'] = data_dir + '/' + d['subjectID'] + '.nii.gz'
+        if not PAD_DONE or not os.path.isdir(pad_truncated_dir):
+            d['fpath'] = data_dir + '/' + d['subjectID'] + '.nii.gz'
+        else:
+            d['fpath'] = pad_truncated_dir + '/' + d['subjectID'] + '.nii.gz'
     # sub_id = pd.DataFrame(label_excel, columns=['subjectID']).values
     # sub_id = [i[0][-7:] for i in sub_id]
     #
@@ -90,7 +107,8 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
     # study_id = [sub_study_dt[i] for i in sub_id]
     # study_id_fpath = [id_fpath(i) for i in study_id]
     # data = [{'id':id, 'DLCO': , 'fpath': mypath.data_dir + '/' + id} for id in sub_id]
-    random.shuffle(data)
+
+    # random.shuffle(data)  # Four fold are not right !!!
     kf = KFold(n_splits=args.total_folds, shuffle=True, random_state=args.kfold_seed)  # for future reproduction
 
     if hasattr(args, 'test_pat') and args.test_pat == 'zhiwei77':
@@ -127,26 +145,25 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
     # tsxformd = xformd('test')
     data_dt = {}
     if 'train' in datasetmode:
-        tr_dataset = monai.data.CacheDataset(data=tr_data, transform=xformd('train', z_size=args.z_size, y_size=args.y_size, x_size=args.x_size, target=args.target, crop_foreground=args.crop_foreground), num_workers=args.workers, cache_rate=1)
+        tr_dataset = monai.data.CacheDataset(data=tr_data, transform=xformd('train', z_size=args.z_size, y_size=args.y_size, x_size=args.x_size, pad_truncated_dir=pad_truncated_dir, target=args.target, crop_foreground=args.crop_foreground, pad_ratio=args.pad_ratio), num_workers=0, cache_rate=1)
         train_dataloader = DataLoader(tr_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.workers, persistent_workers=True)
         data_dt['train'] = train_dataloader
 
     if 'valid' in datasetmode:
-        vd_dataset = monai.data.CacheDataset(data=vd_data, transform=xformd('valid', z_size=args.z_size, y_size=args.y_size, x_size=args.x_size, target=args.target, crop_foreground=args.crop_foreground), num_workers=args.workers, cache_rate=1)
+        vd_dataset = monai.data.CacheDataset(data=vd_data, transform=xformd('valid', z_size=args.z_size, y_size=args.y_size, x_size=args.x_size, pad_truncated_dir=pad_truncated_dir, target=args.target, crop_foreground=args.crop_foreground, pad_ratio=args.pad_ratio), num_workers=0, cache_rate=1)
         valid_dataloader = DataLoader(vd_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.workers, persistent_workers=True)
         data_dt['valid'] = valid_dataloader
 
     if 'test' in datasetmode:
-        ts_dataset = monai.data.CacheDataset(data=ts_data, transform=xformd('test', z_size=args.z_size, y_size=args.y_size, x_size=args.x_size, target=args.target, crop_foreground=args.crop_foreground), num_workers=args.workers, cache_rate=1)
+        ts_dataset = monai.data.CacheDataset(data=ts_data, transform=xformd('test', z_size=args.z_size, y_size=args.y_size, x_size=args.x_size, pad_truncated_dir=pad_truncated_dir, target=args.target, crop_foreground=args.crop_foreground, pad_ratio=args.pad_ratio), num_workers=0, cache_rate=1)
         test_dataloader = DataLoader(ts_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.workers, persistent_workers=True)
         data_dt['test'] = test_dataloader
 
-    if 'trainnoaug' in datasetmode:
-        # training dataset without any data augmentation to simulate the valid transform to see if center crop helps
-        tr_dataset_no_aug = monai.data.CacheDataset(data=tr_data, transform=xformd('valid', z_size=args.z_size, y_size=args.y_size, x_size=args.x_size, target=args.target, crop_foreground=args.crop_foreground), num_workers=args.workers, cache_rate=1)
-        train_dataloader_no_aug = DataLoader(tr_dataset_no_aug, batch_size=args.batch_size, shuffle=False, num_workers=args.workers, persistent_workers=True)
-        data_dt['trainnoaug'] = train_dataloader_no_aug
-
+    # if 'trainnoaug' in datasetmode:
+    #     # training dataset without any data augmentation to simulate the valid transform to see if center crop helps
+    #     tr_dataset_no_aug = monai.data.CacheDataset(data=tr_data, transform=xformd('valid', z_size=args.z_size, y_size=args.y_size, x_size=args.x_size, pad_truncated_dir=pad_truncated_dir, target=args.target, crop_foreground=args.crop_foreground, pad_ratio=args.pad_ratio), num_workers=0, cache_rate=1)
+    #     train_dataloader_no_aug = DataLoader(tr_dataset_no_aug, batch_size=args.batch_size, shuffle=False, num_workers=args.workers, persistent_workers=True)
+    #     data_dt['trainnoaug'] = train_dataloader_no_aug
 
     return data_dt
 

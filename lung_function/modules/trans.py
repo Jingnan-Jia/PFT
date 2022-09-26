@@ -7,7 +7,7 @@ import random
 from typing import Dict, Optional, Union, Hashable, Sequence, Callable
 from monai.utils import Method, NumpyPadMode, PytorchPadMode, ensure_tuple, ensure_tuple_rep, fall_back_tuple
 
-from medutils.medutils import load_itk
+from medutils.medutils import load_itk, save_itk
 
 import numpy as np
 import pandas as pd
@@ -24,6 +24,26 @@ from monai.transforms.utils import (
 TransInOut = Dict[Hashable, Optional[Union[np.ndarray, torch.Tensor, str, int]]]
 # Note: all transforms here must inheritage Transform, Transform, or RandomTransform.
 
+class SaveDatad(Transform):
+    """Save the padded data, so that next time we can load the data directly, to save time.
+    """
+    def __init__(self, pad_truncated_dir):
+        super().__init__()
+        self.pad_truncated_dir = pad_truncated_dir
+
+    def __call__(self, data: TransInOut) -> TransInOut:
+        d = data
+        n = 7 - len(str(d['pat_id'][0]))
+        if n>0:
+            d['pat_id'] = [f"{'0'*n}{str(d['pat_id'][0])}"]
+        fpath = f"{self.pad_truncated_dir}/SSc_patient_{d['pat_id'][0]}.nii.gz"
+        save_itk(filename=fpath, scan=d['image'][0], origin=list(d['origin'].astype(np.float)), spacing=list(d['spacing'].astype(np.float)), dtype=float)
+        fpath_lungmask = fpath.replace('.nii.gz', '_LungMask.nii.gz')
+        save_itk(filename=fpath_lungmask, scan=d['lung_mask'][0], origin=list(d['origin'].astype(np.float)), spacing=list(d['spacing'].astype(np.float)))
+
+        print(f"successfully save pad_truncated data to {fpath} and {fpath_lungmask}")
+        return d
+
 
 class LoadDatad(Transform):
     """Load data. The output image values range from -1500 to 1500.
@@ -38,11 +58,10 @@ class LoadDatad(Transform):
         :func:`lung_function.modules.composed_trans.xformd_pos2score` and
         :func:`lung_function.modules.composed_trans.xformd_pos`
     """
-    def __init__(self, target, crop_foreground=False, pad=False):
+    def __init__(self, target, crop_foreground=False):
         super().__init__()
         self.target = [i.lstrip() for i in target.split('-')]
         self.crop_foreground = crop_foreground
-
     def __call__(self, data: TransInOut) -> TransInOut:
         fpath = data['fpath']
         print(f"loading {fpath}")
@@ -117,28 +136,38 @@ class RandomCropForegroundd(MapTransform, RandomizableTransform):
     def __call__(self, data) -> Dict:
         d = dict(data)
         zmin, zmax, ymin, ymax, xmin, xmax = bbox2_3D(d[self.source_key][0])  # remove channel dim
-        # z_lung = zmax-zmin
-        # y_lung = ymax-ymin
-        # x_lung = xmax-xmin
+        z_lung = zmax-zmin
+        y_lung = ymax-ymin
+        x_lung = xmax-xmin
 
-        z_res = d[self.source_key].shape[1]-self.z_size
-        y_res = d[self.source_key].shape[2]-self.y_size
-        x_res = d[self.source_key].shape[3]-self.x_size
+        z_res = self.z_size-z_lung
+        y_res = self.y_size-y_lung
+        x_res = self.x_size-x_lung
 
         rand_start = []
         for res, start in zip([z_res, y_res, x_res], [zmin, ymin, xmin]):
             if res > 0:
-                shift = random.randint(0, res)
-            elif res == 0:
-                shift = 0
+                shift = random.randint(max(start-res, 0), start)
+            elif res ==0:
+                shift = start
             else:
-                shift = random.randint(start, res)
+                shift = random.randint(start, start-res)
+                print(f"patch size is smaller than lung size for pat {d['pat_id']}")
+                # raise Exception(f"lung mask shape {d[self.source_key].shape} is smaller than patch size {self.z_size, self.y_size, self.x_size}")
+            # elif res == 0:
+            #     shift = 0
+            # else:
+            #     shift = random.randint(start, res)
             rand_start.append(shift)
         for key in self.keys:
+            valid_start0 = min(rand_start[0], d[self.source_key][0].shape[0]-self.z_size)
+            valid_start1 = min(rand_start[1], d[self.source_key][0].shape[1]-self.y_size)
+            valid_start2 = min(rand_start[2], d[self.source_key][0].shape[2]-self.x_size)
+
             d[key] = d[key][:,
-                     rand_start[0]: rand_start[0] + self.z_size,
-                     rand_start[1]: rand_start[1] + self.y_size,
-                     rand_start[2]: rand_start[2] + self.x_size,]
+                     valid_start0: valid_start0 + self.z_size,
+                     valid_start1: valid_start1 + self.y_size,
+                     valid_start2: valid_start2 + self.x_size,]
         # del d[self.source_key]  # remove lung masks
         return d
 

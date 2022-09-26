@@ -34,7 +34,7 @@ def get_args():
     parser.add_argument('--loss', choices=('mse', 'mae', 'smooth_mae', 'mse+mae', 'msehigher'), help='mode', type=str,
                         default='mse')
     parser.add_argument('--pretrained', choices=(1, 0), help='pretrained or not', type=int, default=0)
-    parser.add_argument('--epochs', help='total epochs', type=int, default=1)
+    parser.add_argument('--epochs', help='total epochs', type=int, default=500)
     parser.add_argument('--weight_decay', help='L2 regularization', type=float,
                         default=0.0001)  # must be a float number !
     parser.add_argument('--lr', help='learning rate', type=float, default=0.0001)
@@ -56,6 +56,7 @@ def get_args():
     parser.add_argument('--z_size', help='length of patch along z axil ', type=int, default=240)
     parser.add_argument('--y_size', help='length of patch along y axil ', type=int, default=240)
     parser.add_argument('--x_size', help='length of patch along x axil ', type=int, default=240)
+    parser.add_argument('--pad_ratio', help='padding ratio', type=float, default=1.5)
 
     args = parser.parse_args()
 
