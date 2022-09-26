@@ -46,11 +46,17 @@ class LoadDatad(Transform):
     def __call__(self, data: TransInOut) -> TransInOut:
         fpath = data['fpath']
         print(f"loading {fpath}")
-        x = load_itk(fpath, require_ori_sp=False)  # shape order: z, y, x
+        x, ori, sp = load_itk(fpath, require_ori_sp=True)  # shape order: z, y, x
         y = np.array([data[i] for i in self.target])
         # print(f"{fpath}, {y}")
-        new_data = {'image': x.astype(np.float32),
+        new_data = {'pat_id': np.array([int(fpath.split(".nii.gz")[0].split('_')[-1])]),  # extract the patient id as a string
+                    'image': x.astype(np.float32),
+                    'origin': ori.astype(np.float32),
+                    'spacing': sp.astype(np.float32),
                     'label': y.astype(np.float32)}
+        # new_data = {
+        #             'image': x.astype(np.float32),
+        #             'label': y.astype(np.float32)}
         if self.crop_foreground:
             lung_fpath = fpath.replace('.nii.gz', '_LungMask.nii.gz')
             lung_mask = load_itk(lung_fpath, require_ori_sp=False)  # shape order: z, y, x

@@ -24,6 +24,10 @@ class PFTPath():
             print('successfully create directory:', directory)
 
     def __init__(self, id: Union[int, str], check_id_dir: bool = False, space='1.0'):
+        if space == 1:
+            space = '1.0'
+        elif space == 1.5:
+            space = '1.5'
         self.data_dir = self.data_dir_root + '/iso' + space
 
         if isinstance(id, (int, float)):

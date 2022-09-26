@@ -20,6 +20,7 @@ import torch.nn as nn
 import copy
 import statistics
 from mlflow.tracking import MlflowClient
+import numpy as np
 
 from lung_function.modules.datasets import all_loaders
 from lung_function.modules.loss import get_loss
@@ -73,9 +74,18 @@ class Run:
 
         self.net = self.net.to(self.device)
 
+        validMAEEpoch_AllBest = 1000
         if args.pretrained_id:
             pretrained_path = PFTPath(args.pretrained_id, check_id_dir=False, space=args.ct_sp)
-            self.net.load_state_dict(torch.load(pretrained_path.model_fpath, map_location=self.device))  # model_fpath need to exist
+            ckpt = torch.load(pretrained_path.model_fpath, map_location=self.device)
+            if type(ckpt) is dict and 'model' in ckpt:
+                model = ckpt['model']
+                if 'validMAEEpoch_AllBest' in ckpt:
+                    validMAEEpoch_AllBest = ckpt['validMAEEpoch_AllBest']
+            else:
+                model = ckpt
+            self.net.load_state_dict(model)  # model_fpath need to exist
+
 
         self.BestMetricDt = {'trainLossEpochBest': 1000,
                              # 'trainnoaugLossEpochBest': 1000,
@@ -84,9 +94,8 @@ class Run:
 
                             'trainMAEEpoch_AllBest': 1000,
                              # 'trainnoaugMAEEpoch_AllBest': 1000,
-                            'validMAEEpoch_AllBest': 1000,
+                            'validMAEEpoch_AllBest': validMAEEpoch_AllBest,
                             'testMAEEpoch_AllBest': 1000,
-
                         }
 
     def step(self, mode, epoch_idx, save_pred=False):
@@ -121,11 +130,20 @@ class Run:
                 else:
                     pred = self.net(batch_x)
                 if save_pred:
+                    # head = ['pat_id']
+                    # head.extend(self.target)
                     head = self.target
+                    # batch_pat_id = data['pat_id'].cpu().detach.numpy()
+
                     batch_y_np = batch_y.cpu().detach().numpy()
+                    saved_label = batch_y_np
                     pred_np = pred.cpu().detach().numpy()
-                    medutils.appendrows_to(self.mypath.save_label_fpath(mode), batch_y_np, head=head)
-                    medutils.appendrows_to(self.mypath.save_pred_fpath(mode), pred_np, head=head)
+                    saved_pred = pred_np
+
+                    # saved_label = np.vstack((batch_pat_id, batch_y_np))
+                    # saved_pred = np.vstack((batch_pat_id, pred_np))
+                    medutils.appendrows_to(self.mypath.save_label_fpath(mode), saved_label, head=head)
+                    medutils.appendrows_to(self.mypath.save_pred_fpath(mode), saved_pred, head=head)
 
                 loss = self.loss_fun(pred, batch_y)
                 with torch.no_grad():
@@ -170,19 +188,19 @@ class Run:
 
             if mode == 'valid':
                 print(f"Current mae is {self.BestMetricDt[mode+'MAEEpoch_AllBest']}, better than the previous mae: {tmp}, save model.")
-                torch.save(self.net.state_dict(), self.mypath.model_fpath)
-
-
+                ckpt = {'model': self.net.state_dict(),
+                        'metric_name': mode+'MAEEpoch_AllBest',
+                        'current_metric_value': self.BestMetricDt[mode+'MAEEpoch_AllBest']}
+                torch.save(ckpt, self.mypath.model_fpath)
 
 
 def run(args):
     myrun = Run(args)
     infer_modes = ['train', 'valid', 'test']
     if args.mode == 'infer':
-        save_pred = True
         for mode in infer_modes:
-            myrun.step(mode,  0,  save_pred)
-    else: # 'train' or 'continue train'
+            myrun.step(mode,  0,  save_pred=True)
+    else: # 'train' or 'continue_train'
         for i in range(args.epochs):  # 20000 epochs
             myrun.step('train', i)
             if i % args.valid_period == 0:  # run the validation
@@ -190,12 +208,15 @@ def run(args):
                 myrun.step('test',  i)
             if i == args.epochs - 1:  # load best model and do inference
                 print('start inference')
-                myrun.net.load_state_dict(torch.load(myrun.mypath.model_fpath, map_location=myrun.device))  # model_fpath need to exist
+                ckpt = torch.load(myrun.mypath.model_fpath, map_location=myrun.device)
+                if type(ckpt) is dict and 'model' in ckpt:
+                    model = ckpt['model']
+                else:
+                    model = ckpt
+                myrun.net.load_state_dict(model)  # model_fpath need to exist
                 print(f"load net from {myrun.mypath.model_fpath}")
-
-                save_pred = True
                 for mode in infer_modes:
-                    myrun.step(mode, i, save_pred)
+                    myrun.step(mode, i, save_pred=True)
 
 
     mypath = PFTPath(args.id, check_id_dir=False, space=args.ct_sp)
@@ -277,7 +298,6 @@ if __name__ == "__main__":
     record_fpath = "results/record.log"
     id = record_1st(record_fpath)  # write super parameters from set_args.py to record file.
 
-
     # if merge 4 fold results, uncommit the following code.
     # From here ======================================================
     # current_id = 427
@@ -291,33 +311,42 @@ if __name__ == "__main__":
     #     args.id = id  # do not need to pass id seperately to the latter function
 
     # to here =======================================================
+    if args.mode=='infer':  # get the id of the run
+        client = MlflowClient()
+        run_ls = client.search_runs(experiment_ids=[experiment.experiment_id], run_view_type=2,
+                                    filter_string=f"params.id LIKE '%{args.pretrained_id}%'")
+        run_ = run_ls[0]
+        run_id = run_.info.run_id
+        with mlflow.start_run(run_id=run_id, tags={"mlflow.note.content": args.remark}):
+            args.id = args.pretrained_id
+            # import requests
+            # requests.post()
+            run(args)
+    else:
+        with mlflow.start_run(run_name=str(id), tags={"mlflow.note.content": args.remark}):
+            args.id = id  # do not need to pass id seperately to the latter function
 
-    with mlflow.start_run(run_name=str(id), tags={"mlflow.note.content": args.remark}):
-        args.id = id  # do not need to pass id seperately to the latter function
+            current_id = id
 
-        current_id = id
+            p1 = threading.Thread(target=record_cgpu_info, args=(args.outfile, ))
+            p1.start()
 
-        # p1 = threading.Thread(target=record_cgpu_info, args=(args.outfile, ))
-        # p1.start()
+            tmp_args_dt = vars(args)
+            tmp_args_dt['fold'] = 'all'
+            log_params(tmp_args_dt)
 
-        tmp_args_dt = vars(args)
-        tmp_args_dt['fold'] = 'all'
-        log_params(tmp_args_dt)
+            id_ls = []
+            for fold in [1, 2, 3, 4]:
+                id = record_1st(record_fpath)  # write super parameters from set_args.py to record file.
+                id_ls.append(id)
+                with mlflow.start_run(run_name=str(id) + '_fold_' + str(fold), tags={"mlflow.note.content": f"fold: {fold}"}, nested=True):
+                    args.fold = fold
+                    args.id = id  # do not need to pass id seperately to the latter function
+                    tmp_args_dt = vars(args)
+                    log_params(tmp_args_dt)
+                    run(args)
 
-        id_ls = []
-        for fold in [1, 2, 3, 4]:
-            id = record_1st(record_fpath)  # write super parameters from set_args.py to record file.
-            id_ls.append(id)
-            with mlflow.start_run(run_name=str(id) + '_fold_' + str(fold), tags={"mlflow.note.content": f"fold: {fold}"}, nested=True):
-                args.fold = fold
-                args.id = id  # do not need to pass id seperately to the latter function
-                tmp_args_dt = vars(args)
-                log_params(tmp_args_dt)
-                run(args)
+            log_metrics_all_folds_average(id_ls, current_id)
 
-        log_metrics_all_folds_average(id_ls, current_id)
-
-        # p1.do_run = False  # stop the thread
-        # p1.join()
-
-
+            p1.do_run = False  # stop the thread
+            p1.join()

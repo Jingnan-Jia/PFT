@@ -122,7 +122,6 @@ class ViT3(nn.Module):
             nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(mlp_dim, num_classes),
-            nn.Dropout(dropout)
         )
 
     def forward(self, img, mask=None):
