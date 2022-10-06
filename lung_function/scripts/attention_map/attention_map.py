@@ -1,5 +1,5 @@
 import sys
-sys.path.append("../..")
+sys.path.append("../../..")
 from lung_function.modules.datasets import all_loaders
 from lung_function.modules.cam import GradCAM
 from tqdm import tqdm
@@ -33,7 +33,7 @@ class Args:
 
 def main():
     AttentionMethod = "GradCAM"  # or others
-    Ex_id = 715
+    Ex_id = 750
     mlflow.set_tracking_uri("http://nodelogin02:5000")
     experiment = mlflow.set_experiment("lung_fun_db15")
     client = MlflowClient()
@@ -45,14 +45,14 @@ def main():
     args.workers=1
 
     if AttentionMethod=="GradCAM":
-        attention = GradCAM(Ex_id, args_dt)
+        attention = GradCAM(Ex_id, args_dt, 'last_maxpool')
     else:
         raise Exception(f"Please set the correct AttentionMethod")
 
 
     mypath = PFTPath(Ex_id, check_id_dir=False, space=args.ct_sp)
 
-    data_dt = all_loaders(mypath.data_dir, mypath.label_fpath, args, datasetmode='valid', nb=100)
+    data_dt = all_loaders(mypath.data_dir, mypath.label_fpath, args, datasetmode='valid', nb=5)
     dataloader = data_dt['valid']
 
     for data in dataloader:

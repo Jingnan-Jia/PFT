@@ -78,9 +78,9 @@ def metrics(pred_fpath, label_fpath):
     height_fig = 5
     length_fig = height_fig * col_nb
     # if col_nb < 10:
-    fig = plt.figure(figsize=(length_fig, height_fig))
-    fig_2 = plt.figure(figsize=(length_fig, height_fig))
-    fig_3 = plt.figure(figsize=(length_fig, height_fig))
+    fig = plt.figure(figsize=(length_fig, height_fig))  # for bland-altman plot
+    fig_2 = plt.figure(figsize=(length_fig, height_fig))  # for scatter plot
+    fig_3 = plt.figure(figsize=(length_fig, height_fig))  # for scatter plot with 95% CI
     # else:
     #     raise Exception(f"the columns number is greater than 10: {df_label.columns}")
 
@@ -182,6 +182,7 @@ def metrics(pred_fpath, label_fpath):
             limitx = 12
         else:
             limitx = 7  # max value of FEV1 and DLCO_SB
+        limitx = None
 
         ax = fig.add_subplot(row_nb, col_nb, i + 1)
         ax.set_xlim(0, limitx)

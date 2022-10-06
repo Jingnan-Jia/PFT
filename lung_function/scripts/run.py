@@ -22,6 +22,8 @@ import statistics
 from mlflow.tracking import MlflowClient
 import numpy as np
 
+from monai.utils import set_determinism
+
 from lung_function.modules.datasets import all_loaders
 from lung_function.modules.loss import get_loss
 from lung_function.modules.networks import get_net_3d
@@ -54,6 +56,15 @@ def try_func(func):
 log_metric = try_func(log_metric)
 log_metrics = try_func(log_metrics)
 
+
+def int2str(batch_id: np.ndarray) -> np.ndarray:
+    id_str_ls = []
+    for id in batch_id:
+        id = str(id)
+        while len(id) < 7:  # the pat id should be 7 digits
+            id = '0' + id
+        id_str_ls.append(id)
+    return np.array(id_str_ls)
 
 class Run:
     def __init__(self, args):
@@ -130,18 +141,19 @@ class Run:
                 else:
                     pred = self.net(batch_x)
                 if save_pred:
-                    # head = ['pat_id']
-                    # head.extend(self.target)
-                    head = self.target
-                    # batch_pat_id = data['pat_id'].cpu().detach.numpy()
+                    head = ['pat_id']
+                    head.extend(self.target)
+
+                    batch_pat_id = data['pat_id'].cpu().detach().numpy()
+                    batch_pat_id = int2str(batch_pat_id)
 
                     batch_y_np = batch_y.cpu().detach().numpy()
-                    saved_label = batch_y_np
                     pred_np = pred.cpu().detach().numpy()
-                    saved_pred = pred_np
 
-                    # saved_label = np.vstack((batch_pat_id, batch_y_np))
-                    # saved_pred = np.vstack((batch_pat_id, pred_np))
+                    batch_pat_id = np.expand_dims(batch_pat_id, axis=-1)  # change the shape from (N,) to (N, 1)
+
+                    saved_label = np.hstack((batch_pat_id, batch_y_np))
+                    saved_pred = np.hstack((batch_pat_id, pred_np))
                     medutils.appendrows_to(self.mypath.save_label_fpath(mode), saved_label, head=head)
                     medutils.appendrows_to(self.mypath.save_pred_fpath(mode), saved_pred, head=head)
 
@@ -293,6 +305,8 @@ def log_metrics_all_folds_average(id_ls, id):
 
 
 if __name__ == "__main__":
+    set_determinism(seed=4)  # set seed for this run
+
     mlflow.set_tracking_uri("http://nodelogin02:5000")
     experiment = mlflow.set_experiment("lung_fun_db15")
     record_fpath = "results/record.log"

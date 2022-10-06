@@ -68,7 +68,7 @@ class LoadDatad(Transform):
         x, ori, sp = load_itk(fpath, require_ori_sp=True)  # shape order: z, y, x
         y = np.array([data[i] for i in self.target])
         # print(f"{fpath}, {y}")
-        new_data = {'pat_id': np.array([int(fpath.split(".nii.gz")[0].split('_')[-1])]),  # extract the patient id as a string
+        new_data = {'pat_id': np.array(int(fpath.split(".nii.gz")[0].split('_')[-1])),  # extract the patient id as a int, otherwise, error occured: TypeError: default_collate: batch must contain tensors, numpy arrays, numbers, dicts or lists; found <U21
                     'image': x.astype(np.float32),
                     'origin': ori.astype(np.float32),
                     'spacing': sp.astype(np.float32),

@@ -13,7 +13,7 @@ from monai.transforms import Resize
 
 
 class GradCAM():
-    def __init__(self, eval_id, args_dt):
+    def __init__(self, eval_id, args_dt, layer='features'):
         self.mypath = PFTPath(eval_id, check_id_dir=False, space=args_dt['ct_sp'])
         self.device = torch.device("cuda")
         self.target = [i.lstrip() for i in args_dt['target'].split('-')]
@@ -23,12 +23,27 @@ class GradCAM():
         self.grad_block = []
         self.fmap_block = []
 
-        self.net.load_state_dict(torch.load(self.mypath.model_fpath, map_location=self.device))
+        ckpt = torch.load(self.mypath.model_fpath, map_location=self.device)
+        if type(ckpt) is dict and 'model' in ckpt:
+            model = ckpt['model']
+        else:
+            model = ckpt
+        self.net.load_state_dict(model)  # model_fpath need to exist
+
+        # self.net.load_state_dict(torch.load(self.mypath.model_fpath, map_location=self.device))
         self.net.to(self.device)
-        self.net.avgpool.register_forward_hook(self.farward_hook)
-        self.net.avgpool.register_backward_hook(self.backward_hook)
+        if layer == 'avgpool':
+            self.net.avgpool.register_forward_hook(self.farward_hook)
+            self.net.avgpool.register_backward_hook(self.backward_hook)
+        elif layer == 'last_conv':
+            self.net.features[-4].register_forward_hook(self.farward_hook)
+            self.net.features[-4].register_backward_hook(self.backward_hook)
+        elif layer == 'last_maxpool':
+            self.net.features[-1].register_forward_hook(self.farward_hook)
+            self.net.features[-1].register_backward_hook(self.backward_hook)
         self.net.eval()
         self.opt = torch.optim.Adam(self.net.parameters(), lr=0.0001)
+        self.layer = layer
 
     # 定义获取梯度的函数
     def backward_hook(self, module, grad_in, grad_out):
@@ -46,8 +61,17 @@ class GradCAM():
         # img_id = int(self.img_fpath.split('/')[-2].split('_')[-1])
         # label_all = label
         # loss = nn.MSELoss()
-
+        self.fmap_block = []  # empty the feature map list before forwarding.
         output = self.net(img)
+        img_np = (img.cpu().detach().numpy()[0][0] + 1 )/2 * 3000 - 1500  # Rescale to original hausfield values
+
+        cam_dir = f"{self.mypath.id_dir}/cam/{self.layer}"
+        if not os.path.isdir(cam_dir):
+            os.makedirs(cam_dir)
+
+        img_np_fpath = f"{cam_dir}/{str(pat_id[0])}.mha"
+        save_itk(img_np_fpath, img_np, ori.tolist(), sp.tolist())
+
         pred_dt = {k: v for k, v in zip(self.target, output.flatten())}
         print(f"predict: {output.detach().cpu().numpy()}, label: {label.detach().cpu().numpy()}")
 
@@ -55,6 +79,7 @@ class GradCAM():
 
             print(f"For target: {target}")
             self.grad_block = []
+
             self.opt.zero_grad()  # clear the gradients
             pred_dt[target].backward(retain_graph=True)
             grad = torch.stack(self.grad_block, 0)
@@ -81,10 +106,9 @@ class GradCAM():
                 target = "TLC_pred"
 
 
-            if not os.path.isdir(self.mypath.id_dir + '/cam'):
-                os.makedirs(self.mypath.id_dir + '/cam')
-            save_itk(f"{self.mypath.id_dir}/cam/{str(pat_id[0])}_{target}.mha", cam, ori.tolist(), sp.tolist())
-            print(f"finish {self.mypath.id_dir}/cam/{pat_id}_{target}.nii.gz")
+            fpath = f"{cam_dir}/{str(pat_id[0])}_{target}.mha"
+            save_itk(fpath, cam, ori.tolist(), sp.tolist())
+            print(fpath)
 
 
 def scale_cam_image(cam, target_size=None):

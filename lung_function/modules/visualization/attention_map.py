@@ -13,12 +13,12 @@ import os
 import pandas as pd
 from tqdm import tqdm
 
-from lung_function.modules.path import PathScore as Path
+from lung_function.modules.path import PFTPath
 
 class GradCAM():
     def __init__(self, eval_id):
         self.eval_id = eval_id
-        self.mypath = Path(self.eval_id)
+        self.mypath = PFTPath(self.eval_id)
 
 
         if torch.cuda.is_available():

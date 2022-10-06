@@ -42,7 +42,7 @@ def get_args():
     parser.add_argument('--batch_size', help='batch_size', type=int, default=5)
     parser.add_argument('--ct_sp', help='space', type=str, default='1.5')
     parser.add_argument('--kfold_seed', help='kfold_seed', type=int, default=711)
-    parser.add_argument('--test_pat', help='testing patients', type=str, default='zhiwei77')
+    parser.add_argument('--test_pat', help='testing patients', choices=('zhiwei77', 'random'), type=str, default='random')
 
     parser.add_argument('--target', help='target prediction', type=str,
                         default='FVC-DLCO_SB-FEV1-TLC_He-DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred')  # FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight-

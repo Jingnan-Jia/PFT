@@ -88,6 +88,7 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
     pad_truncated_dir = f"/home/jjia/data/dataset/lung_function/iso{args.ct_sp}/z{args.z_size}x{args.x_size}y{args.y_size}_pad_ratio{str(args.pad_ratio)}"
 
     label_excel = pd.read_excel(label_fpath, engine='openpyxl')
+    label_excel = label_excel.sort_values(by=['subjectID'])
     label_excel = clean_data(label_excel, data_dir)
     # 3 labels for one level
     data = np.array(label_excel.to_dict('records'))  # nparray is easy for kfold split
@@ -140,6 +141,10 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
     if nb:
         tr_data, vd_data, ts_data = tr_data[:nb], vd_data[:nb], ts_data[:nb]
     # tr_data, vd_data, ts_data = tr_data[:5], vd_data[:5], ts_data[:5]
+    for d in [tr_data, vd_data, ts_data]:
+        print(f"-----")
+        for d_one in d:
+            print(d_one['subjectID'])
     # trxformd = xformd('train')
     # vdxformd = xformd('valid')
     # tsxformd = xformd('test')

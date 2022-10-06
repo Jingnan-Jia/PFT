@@ -11,7 +11,7 @@ class PFTPath():
     """
     Common path values are initialized.
     """
-    results_dir: str = 'results'
+    results_dir: str = '/home/jjia/data/lung_function/lung_function/scripts/results'
     record_file = os.path.join(results_dir, "records.csv")
     log_dir = os.path.join(results_dir, 'logs')
     ex_dir = os.path.join(results_dir, 'experiments')

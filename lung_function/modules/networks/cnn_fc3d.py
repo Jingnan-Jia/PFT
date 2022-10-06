@@ -458,7 +458,7 @@ class Vgg19_3d(nn.Module):
             nn.Conv3d(base, base, 3, padding=1),
             nn.ReLU(inplace=True),
             nn.BatchNorm3d(base),
-            nn.MaxPool3d(kernel_size=3, stride=2),
+            nn.MaxPool3d(kernel_size=3, stride=2),  # first down pool
 
             nn.Conv3d(base, base * 2, 3, padding=1),
             nn.ReLU(inplace=True),
@@ -466,7 +466,7 @@ class Vgg19_3d(nn.Module):
             nn.Conv3d(base* 2, base * 2, 3, padding=1),
             nn.ReLU(inplace=True),
             nn.BatchNorm3d(base * 2),
-            nn.MaxPool3d(kernel_size=3, stride=2),
+            nn.MaxPool3d(kernel_size=3, stride=2),  # second down pool
 
             nn.Conv3d(base * 2, base * 4, 3, padding=1),
             nn.ReLU(inplace=True),
@@ -480,7 +480,7 @@ class Vgg19_3d(nn.Module):
             nn.Conv3d(base * 4, base * 4, 3, padding=1),
             nn.ReLU(inplace=True),
             nn.BatchNorm3d(base * 4),
-            nn.MaxPool3d(kernel_size=3, stride=2),
+            nn.MaxPool3d(kernel_size=3, stride=2),  # third down pool
 
             nn.Conv3d(base * 4, base * 8, 3, padding=1),
             nn.ReLU(inplace=True),
@@ -494,7 +494,7 @@ class Vgg19_3d(nn.Module):
             nn.Conv3d(base * 8, base * 8, 3, padding=1),
             nn.ReLU(inplace=True),
             nn.BatchNorm3d(base * 8),
-            nn.MaxPool3d(kernel_size=3, stride=2),
+            nn.MaxPool3d(kernel_size=3, stride=2),  # forth down pool
 
             nn.Conv3d(base * 8, base * 16, 3, padding=1),
             nn.ReLU(inplace=True),
@@ -508,7 +508,7 @@ class Vgg19_3d(nn.Module):
             nn.Conv3d(base * 16, base * 16, 3, padding=1),
             nn.ReLU(inplace=True),
             nn.BatchNorm3d(base * 16),
-            nn.MaxPool3d(kernel_size=3, stride=2),)
+            nn.MaxPool3d(kernel_size=3, stride=2),)  # fifth down pool
 
         self.avgpool = nn.AdaptiveAvgPool3d((6, 6, 6))
         self.ft = nn.Flatten()
