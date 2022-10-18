@@ -41,6 +41,9 @@ class GradCAM():
         elif layer == 'last_maxpool':
             self.net.features[-1].register_forward_hook(self.farward_hook)
             self.net.features[-1].register_backward_hook(self.backward_hook)
+        elif layer == "second_last_maxpool":
+            self.net.features[39].register_forward_hook(self.farward_hook)
+            self.net.features[39].register_backward_hook(self.backward_hook)
         self.net.eval()
         self.opt = torch.optim.Adam(self.net.parameters(), lr=0.0001)
         self.layer = layer
@@ -69,12 +72,13 @@ class GradCAM():
         if not os.path.isdir(cam_dir):
             os.makedirs(cam_dir)
 
-        img_np_fpath = f"{cam_dir}/{str(pat_id[0])}.mha"
+        img_np_fpath = f"{cam_dir}/{str(pat_id)}.mha"
         save_itk(img_np_fpath, img_np, ori.tolist(), sp.tolist())
 
         pred_dt = {k: v for k, v in zip(self.target, output.flatten())}
         print(f"predict: {output.detach().cpu().numpy()}, label: {label.detach().cpu().numpy()}")
 
+        grads_mean_ls = []
         for target in self.target:
 
             print(f"For target: {target}")
@@ -83,10 +87,13 @@ class GradCAM():
             self.opt.zero_grad()  # clear the gradients
             pred_dt[target].backward(retain_graph=True)
             grad = torch.stack(self.grad_block, 0)
-            grads_mean = torch.mean(grad, [1, 2])
+            grads_mean = torch.mean(grad, [0, 1, 3, 4, 5])  # from torch.Size([1, 1, 64, 14, 14, 14]) to torch.Size([1, 64])
+            # print(f"grads_mean: {grads_mean}")
+            grads_mean_ls.append(grads_mean.cpu().detach().numpy())
 
             cam = torch.zeros(list(self.fmap_block[0].shape)).to(self.device)
-            for weight, map in zip(grads_mean, self.fmap_block):
+            for weight, map in zip(grads_mean, self.fmap_block[0][0]):
+                print(weight.shape, map.shape)
                 cam += weight * map
             cam = cam / len(grads_mean)
             cam = cam.cpu().detach().numpy()
@@ -106,9 +113,11 @@ class GradCAM():
                 target = "TLC_pred"
 
 
-            fpath = f"{cam_dir}/{str(pat_id[0])}_{target}.mha"
+            fpath = f"{cam_dir}/{str(pat_id)}_{target}.mha"
             save_itk(fpath, cam, ori.tolist(), sp.tolist())
             print(fpath)
+        grads_mean_np = np.array(grads_mean_ls)
+        print(grads_mean_np)
 
 
 def scale_cam_image(cam, target_size=None):

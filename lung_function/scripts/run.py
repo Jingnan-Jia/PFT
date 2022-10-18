@@ -21,7 +21,7 @@ import copy
 import statistics
 from mlflow.tracking import MlflowClient
 import numpy as np
-
+import random
 from monai.utils import set_determinism
 
 from lung_function.modules.datasets import all_loaders
@@ -57,6 +57,17 @@ log_metric = try_func(log_metric)
 log_metrics = try_func(log_metrics)
 
 
+def reinit_fc(net, nb_fc0, fc1_nodes, fc2_nodes, num_classes):
+    net.ln1 = nn.Linear(nb_fc0, fc1_nodes)
+    net.rl1 = nn.ReLU(inplace=True)
+    net.dp1 = nn.Dropout()
+    net.ln2 = nn.Linear(fc1_nodes, fc2_nodes)
+    net.rl2 = nn.ReLU(inplace=True)
+    net.dp2 = nn.Dropout()
+    net.ln3 = nn.Linear(fc2_nodes, num_classes)
+    return net
+
+
 def int2str(batch_id: np.ndarray) -> np.ndarray:
     id_str_ls = []
     for id in batch_id:
@@ -72,6 +83,8 @@ class Run:
         self.device = torch.device("cuda")
         self.target = [i.lstrip() for i in args.target.split('-')]
         self.net = get_net_3d(name=args.net, nb_cls=len(self.target), image_size=args.x_size) # output FVC and FEV1
+        self.fold = args.fold
+
         print('net:', self.net)
 
         net_parameters = count_parameters(self.net)
@@ -86,17 +99,35 @@ class Run:
         self.net = self.net.to(self.device)
 
         validMAEEpoch_AllBest = 1000
-        if args.pretrained_id:
-            pretrained_path = PFTPath(args.pretrained_id, check_id_dir=False, space=args.ct_sp)
-            ckpt = torch.load(pretrained_path.model_fpath, map_location=self.device)
-            if type(ckpt) is dict and 'model' in ckpt:
-                model = ckpt['model']
-                if 'validMAEEpoch_AllBest' in ckpt:
-                    validMAEEpoch_AllBest = ckpt['validMAEEpoch_AllBest']
-            else:
-                model = ckpt
-            self.net.load_state_dict(model)  # model_fpath need to exist
+        if args.pretrained_id != '0':
+            if 'SSc' in args.pretrained_id:  # pretrained by ssc_pos L-Net weights
+                pretrained_id = args.pretrained_id.split('-')[self.fold]  # [852] [853] [854] [855]
+                pretrained_model_path = f"/home/jjia/data/ssc_scoring/ssc_scoring/results/models_pos/{pretrained_id}/model.pt"
+                print(f"pretrained_model_path: {pretrained_model_path}")
+                ckpt = torch.load(pretrained_model_path, map_location=self.device)
+                del ckpt['ln3.weight']
+                del ckpt['ln3.bias']
+                del self.net.ln3 # remove the last layer because they do not match
 
+                self.net.load_state_dict(ckpt, strict=False)  # model_fpath need to exist
+                self.net = reinit_fc(self.net, nb_fc0=8 * 16 * 6 * 6 * 6, fc1_nodes=1024, fc2_nodes=1024,
+                                     num_classes=len(self.target))
+                self.net = self.net.to(self.device)  # move the new initialized layers to GPU
+
+                print(f"use the pretrained model from {pretrained_model_path}")
+
+            else:
+                pretrained_path = PFTPath(args.pretrained_id, check_id_dir=False, space=args.ct_sp)
+                ckpt = torch.load(pretrained_path.model_fpath, map_location=self.device)
+
+                if type(ckpt) is dict and 'model' in ckpt:
+                    model = ckpt['model']
+                    if 'validMAEEpoch_AllBest' in ckpt:
+                        validMAEEpoch_AllBest = ckpt['validMAEEpoch_AllBest']
+                else:
+                    model = ckpt
+                self.net.load_state_dict(model)  # model_fpath need to exist
+                self.net = self.net.to(self.device)  # move the new initialized layers to GPU
 
         self.BestMetricDt = {'trainLossEpochBest': 1000,
                              # 'trainnoaugLossEpochBest': 1000,
@@ -305,7 +336,16 @@ def log_metrics_all_folds_average(id_ls, id):
 
 
 if __name__ == "__main__":
-    set_determinism(seed=4)  # set seed for this run
+    seed = 4
+    set_determinism(seed)  # set seed for this run
+
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.cuda.manual_seed(seed)
+
+    random.seed(seed)
+    np.random.seed(seed)
+
 
     mlflow.set_tracking_uri("http://nodelogin02:5000")
     experiment = mlflow.set_experiment("lung_fun_db15")

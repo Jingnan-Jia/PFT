@@ -290,12 +290,12 @@ class Vgg11_3d(nn.Module):
 
         self.ln1 = nn.Linear(nb_fc0, fc1_nodes)
         self.rl1 = nn.ReLU(inplace=True)
+        self.dp1 = nn.Dropout()
 
-        self.dp2 = nn.Dropout()
         self.ln2 = nn.Linear(fc1_nodes, fc2_nodes)
         self.rl2 = nn.ReLU(inplace=True)
+        self.dp2 = nn.Dropout()
 
-        self.dp3 = nn.Dropout()
         self.ln3 = nn.Linear(fc2_nodes, self.num_classes)
 
 
@@ -322,12 +322,12 @@ class Vgg11_3d(nn.Module):
 
         x = self.ln1(x)
         x = self.rl1(x)
+        x = self.dp1(x)
 
         x = self.ln2(x)
-        x = self.dp2(x)
         x = self.rl2(x)
+        x = self.dp2(x)
 
-        x = self.dp3(x)
         x = self.ln3(x)
 
         return x
@@ -401,14 +401,13 @@ class Vgg16_3d(nn.Module):
 
         self.ln1 = nn.Linear(nb_fc0, fc1_nodes)
         self.rl1 = nn.ReLU(inplace=True)
+        self.dp1 = nn.Dropout()
 
-        self.dp2 = nn.Dropout()
         self.ln2 = nn.Linear(fc1_nodes, fc2_nodes)
         self.rl2 = nn.ReLU(inplace=True)
+        self.dp2 = nn.Dropout()
 
-        self.dp3 = nn.Dropout()
         self.ln3 = nn.Linear(fc2_nodes, self.num_classes)
-
 
     def _fc_first(self, x: torch.Tensor):
         x = self.features(x)
@@ -433,12 +432,12 @@ class Vgg16_3d(nn.Module):
 
         x = self.ln1(x)
         x = self.rl1(x)
+        x = self.dp1(x)
 
         x = self.ln2(x)
-        x = self.dp2(x)
         x = self.rl2(x)
+        x = self.dp2(x)
 
-        x = self.dp3(x)
         x = self.ln3(x)
 
         return x
@@ -521,12 +520,12 @@ class Vgg19_3d(nn.Module):
 
         self.ln1 = nn.Linear(nb_fc0, fc1_nodes)
         self.rl1 = nn.ReLU(inplace=True)
+        self.dp1 = nn.Dropout()
 
-        self.dp2 = nn.Dropout()
         self.ln2 = nn.Linear(fc1_nodes, fc2_nodes)
         self.rl2 = nn.ReLU(inplace=True)
+        self.dp2 = nn.Dropout()
 
-        self.dp3 = nn.Dropout()
         self.ln3 = nn.Linear(fc2_nodes, self.num_classes)
 
 
@@ -553,12 +552,12 @@ class Vgg19_3d(nn.Module):
 
         x = self.ln1(x)
         x = self.rl1(x)
+        x = self.dp1(x)
 
         x = self.ln2(x)
-        x = self.dp2(x)
         x = self.rl2(x)
+        x = self.dp2(x)
 
-        x = self.dp3(x)
         x = self.ln3(x)
 
         return x

@@ -98,6 +98,8 @@ def metrics(pred_fpath, label_fpath):
         raise Exception(f"the columns number is greater than 20: {df_label.columns}")
 
     for plot_id, column in enumerate(df_label.columns):
+        if column=='pat_id':
+            continue
         label = df_label[column].to_numpy().reshape(-1, 1)
         pred = df_pred[column].to_numpy().reshape(-1, 1)
 
@@ -158,14 +160,14 @@ def metrics(pred_fpath, label_fpath):
         r_dict['r_' + prefix + '_' + column] = r_value
         p_dict['p_of_r' + prefix + '_' + column] = p_value
 
-        x_reference = np.array([0, 256])
+        x_reference = np.array([np.min(label), np.max(label)])
         print(column, 'linear regression m, b:', m, b)
         print(column, 'linear regression m, b, r^2:', slope, intercept, r_value ** 2)
 
         ax_2.plot(x_reference, m * x_reference + b, '--', color='gray')  # light gray
         # ax_2.text(0.1, 0.7, '---  Regression line',
         #           ha="left", fontsize='large', transform=ax_2.transAxes)
-        ax_2.text(0.1, 0.7, f'y = {m:.2f}x + {b:.2f}\nR\N{SUPERSCRIPT TWO} = {r_value ** 2: .2f}',
+        ax_2.text(0.1, 0.7, f'y = {m:.2f}x + {b:.2f}\nR = {r_value: .2f}\nR\N{SUPERSCRIPT TWO} = {r_value ** 2: .2f}',
                   ha="left", fontsize='large', transform=ax_2.transAxes)
     print(f"lower_y_ls: {lower_y_ls}, upper_y_ls: {upper_y_ls}")
     lower_y, upper_y = min(lower_y_ls), max(upper_y_ls)
