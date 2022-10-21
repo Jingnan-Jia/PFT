@@ -16,8 +16,8 @@ def get_args():
     parser = argparse.ArgumentParser(description="SSc score prediction.")
 
     # Common args with set_args.py
-    parser.add_argument('--mode', choices=('train', 'infer', 'continue_train'), help='mode', type=str, default='train')
-    parser.add_argument('--pretrained_id', help='id used for inference, or continue_train', type=str, default='0') #SSc-852-853-854-855
+    parser.add_argument('--mode', choices=('train', 'infer', 'continue_train'), help='mode', type=str, default='continue_train')
+    parser.add_argument('--pretrained_id', help='id used for inference, or continue_train', type=str, default='SSc-852-853-854-855') #SSc-852-853-854-855
     # parser.add_argument('--reload_jobid', help='jobid used for inference, or continue_train', type=int, default=0)
 
     parser.add_argument('--net', choices=('vgg11_3d','vit3', 'vgg16_3d','vgg19_3d', 'r3d_resnet', 'cnn3fc1', 'cnn4fc2',
