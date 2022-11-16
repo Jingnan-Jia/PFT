@@ -30,10 +30,10 @@ def xformd(mode, z_size: int = 192, y_size: int = 256, x_size: int = 256, pad_tr
     
     if inputmode=='vessel':
         keys = ('vessel', 'lung_mask')
-        pad_value = 0
+        min_value, max_value = 0, 1
     elif inputmode=='image':
         keys = ('image', 'lung_mask')
-        pad_value = -1500
+        min_value, max_value = -1500, 1500
     else:
         raise Exception(f"wrong input mode: {inputmode}")
     global PAD_DONE
@@ -42,9 +42,9 @@ def xformd(mode, z_size: int = 192, y_size: int = 256, x_size: int = 256, pad_tr
         if not os.path.isdir(pad_truncated_dir):
             os.makedirs(pad_truncated_dir)
         xforms = [LoadDatad(keys=keys[0], target=target, crop_foreground=crop_foreground), AddChanneld(keys=keys)]
-        xforms.extend([SpatialPadd(keys=keys[0], spatial_size=post_pad_size, mode='constant', constant_values=pad_value),
+        xforms.extend([SpatialPadd(keys=keys[0], spatial_size=post_pad_size, mode='constant', constant_values=min_value),
                        SpatialPadd(keys=keys[1], spatial_size=post_pad_size, mode='constant', constant_values= 0),
-                       ScaleIntensityRanged(keys=keys[0], a_min=-1500, a_max=1500, b_min=-1, b_max=1, clip=True)])
+                       ScaleIntensityRanged(keys=keys[0], a_min=min_value, a_max=max_value, b_min=-1, b_max=1, clip=True)])
         xforms.append(SaveDatad(keys=keys[0], pad_truncated_dir=pad_truncated_dir))
     else:
         xforms = [LoadDatad(target=target, crop_foreground=crop_foreground), AddChanneld(keys=keys)]
