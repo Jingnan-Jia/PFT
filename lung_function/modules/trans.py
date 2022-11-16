@@ -8,7 +8,7 @@ from typing import Dict, Optional, Union, Hashable, Sequence, Callable
 from monai.utils import Method, NumpyPadMode, PytorchPadMode, ensure_tuple, ensure_tuple_rep, fall_back_tuple
 
 from medutils.medutils import load_itk, save_itk
-
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
@@ -24,28 +24,44 @@ from monai.transforms.utils import (
 TransInOut = Dict[Hashable, Optional[Union[np.ndarray, torch.Tensor, str, int]]]
 # Note: all transforms here must inheritage Transform, Transform, or RandomTransform.
 
-class SaveDatad(Transform):
+class RemoveTextd(MapTransform):
+    """
+    Remove the text to avoid the Error: TypeError: default_collate: batch must contain tensors, numpy arrays, numbers, dicts or lists; found <U80
+    """
+    def __init__(self, keys):
+        super().__init__(keys, allow_missing_keys=True)
+
+    def __call__(self, data: TransInOut) -> TransInOut:
+        d = data
+        for key in self.keys:
+            del d[key] 
+        return d
+
+class SaveDatad(MapTransform):
     """Save the padded data, so that next time we can load the data directly, to save time.
     """
-    def __init__(self, pad_truncated_dir):
-        super().__init__()
+    def __init__(self, keys, pad_truncated_dir):
+        super().__init__(keys, allow_missing_keys=True)
         self.pad_truncated_dir = pad_truncated_dir
 
     def __call__(self, data: TransInOut) -> TransInOut:
         d = data
-        n = 7 - len(str(d['pat_id'][0]))
-        if n>0:
-            d['pat_id'] = [f"{'0'*n}{str(d['pat_id'][0])}"]
-        fpath = f"{self.pad_truncated_dir}/SSc_patient_{d['pat_id'][0]}.nii.gz"
-        save_itk(filename=fpath, scan=d['image'][0], origin=list(d['origin'].astype(np.float)), spacing=list(d['spacing'].astype(np.float)), dtype=float)
-        fpath_lungmask = fpath.replace('.nii.gz', '_LungMask.nii.gz')
-        save_itk(filename=fpath_lungmask, scan=d['lung_mask'][0], origin=list(d['origin'].astype(np.float)), spacing=list(d['spacing'].astype(np.float)))
+        for key in self.keys:
+            fpath = f"{self.pad_truncated_dir}/{Path(str(d['fpath'][0])).name}"
+            save_itk(filename=fpath, scan=d[key][0], origin=list(d['origin'].astype(np.float)), spacing=list(d['spacing'].astype(np.float)), dtype=float)
+            if key=='vessel':
+                fpath_lungmask = fpath.replace('_GcVessel.nii.gz', '_LungMask.nii.gz')
+            elif key=='image':
+                fpath_lungmask = fpath.replace('.nii.gz', '_LungMask.nii.gz')
+            else:
+                raise Exception(f"please input proper key")
+            save_itk(filename=fpath_lungmask, scan=d['lung_mask'][0], origin=list(d['origin'].astype(np.float)), spacing=list(d['spacing'].astype(np.float)))
 
-        print(f"successfully save pad_truncated data to {fpath} and {fpath_lungmask}")
+            print(f"successfully save pad_truncated data to {fpath} and {fpath_lungmask}")
         return d
 
 
-class LoadDatad(Transform):
+class LoadDatad(MapTransform):
     """Load data. The output image values range from -1500 to 1500.
 
         #. Load data from `data['fpath_key']`;
@@ -58,8 +74,8 @@ class LoadDatad(Transform):
         :func:`lung_function.modules.composed_trans.xformd_pos2score` and
         :func:`lung_function.modules.composed_trans.xformd_pos`
     """
-    def __init__(self, target, crop_foreground=False):
-        super().__init__()
+    def __init__(self, keys, target, crop_foreground=False):
+        super().__init__(keys, allow_missing_keys=True)
         self.target = [i.lstrip() for i in target.split('-')]
         self.crop_foreground = crop_foreground
     def __call__(self, data: TransInOut) -> TransInOut:
@@ -68,16 +84,23 @@ class LoadDatad(Transform):
         x, ori, sp = load_itk(fpath, require_ori_sp=True)  # shape order: z, y, x
         y = np.array([data[i] for i in self.target])
         # print(f"{fpath}, {y}")
-        new_data = {'pat_id': np.array(int(fpath.split(".nii.gz")[0].split('_')[-1])),  # extract the patient id as a int, otherwise, error occured: TypeError: default_collate: batch must contain tensors, numpy arrays, numbers, dicts or lists; found <U21
-                    'image': x.astype(np.float32),
+        file_id = fpath.split(".nii.gz")[0].split('SSc_patient_')[-1].split('_')[0]
+        new_data = {'pat_id': np.array([int(file_id)]),  # Note: save it as a array. extract the patient id as a int, otherwise, error occured: TypeError: default_collate: batch must contain tensors, numpy arrays, numbers, dicts or lists; found <U21
+                    self.keys[0]: x.astype(np.float32),
                     'origin': ori.astype(np.float32),
                     'spacing': sp.astype(np.float32),
-                    'label': y.astype(np.float32)}
-        # new_data = {
+                    'label': y.astype(np.float32),
+                    'fpath': np.array([fpath])}
+        # new_data = {s
         #             'image': x.astype(np.float32),
         #             'label': y.astype(np.float32)}
         if self.crop_foreground:
-            lung_fpath = fpath.replace('.nii.gz', '_LungMask.nii.gz')
+            def convertfpath(ori_path):
+                if 'GcVessel' in ori_path:
+                    return ori_path.replace('_GcVessel.nii.gz', '_LungMask.nii.gz')
+                else:
+                    return ori_path.replace('.nii.gz', '_LungMask.nii.gz')
+            lung_fpath = convertfpath(fpath)
             lung_mask = load_itk(lung_fpath, require_ori_sp=False)  # shape order: z, y, x
             new_data['lung_mask'] = lung_mask.astype(np.float32)
         # print('load a image')

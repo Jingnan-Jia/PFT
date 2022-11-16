@@ -82,7 +82,7 @@ class Run:
         self.mypath = PFTPath(args.id, check_id_dir=False, space=args.ct_sp)
         self.device = torch.device("cuda")
         self.target = [i.lstrip() for i in args.target.split('-')]
-        self.net = get_net_3d(name=args.net, nb_cls=len(self.target), image_size=args.x_size) # output FVC and FEV1
+        self.net = get_net_3d(name=args.net, nb_cls=len(self.target), image_size=args.x_size, pretrained=args.pretrained_imgnet) # output FVC and FEV1
         self.fold = args.fold
 
         print('net:', self.net)
@@ -161,8 +161,11 @@ class Run:
             if epoch_idx < 3:  # only show first 3 epochs' data loading time
                 t1 = time.time()
                 log_metric('TLoad', t1-t0, data_idx+epoch_idx*len(dataloader))
-
-            batch_x = data['image'].to(self.device)
+            if args.input_mode=='vessel':
+                key = 'vessel'
+            else:
+                key = 'image'
+            batch_x = data[key].to(self.device)
             batch_y = data['label'].to(self.device)
             with torch.cuda.amp.autocast():
                 if mode != 'train' or save_pred:  # save pred for inference

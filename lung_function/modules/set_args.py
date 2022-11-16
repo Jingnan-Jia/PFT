@@ -16,13 +16,16 @@ def get_args():
     parser = argparse.ArgumentParser(description="SSc score prediction.")
 
     # Common args with set_args.py
-    parser.add_argument('--mode', choices=('train', 'infer', 'continue_train'), help='mode', type=str, default='continue_train')
-    parser.add_argument('--pretrained_id', help='id used for inference, or continue_train', type=str, default='SSc-852-853-854-855') #SSc-852-853-854-855
+    parser.add_argument('--mode', choices=('train', 'infer', 'continue_train'), help='mode', type=str, default='train')
+    parser.add_argument('--pretrained_id', help='id used for inference, or continue_train', type=str, default='0') #SSc-852-853-854-855
     # parser.add_argument('--reload_jobid', help='jobid used for inference, or continue_train', type=int, default=0)
 
+    parser.add_argument('--pretrained_imgnet', help='if pretrained from imagenet', type=boolean_string, default='False')
+
     parser.add_argument('--net', choices=('vgg11_3d','vit3', 'vgg16_3d','vgg19_3d', 'r3d_resnet', 'cnn3fc1', 'cnn4fc2',
-                                          'cnn5fc2', 'cnn6fc2',
-                                          'cnn2fc1', 'cnn3fc2'), help='network name', type=str, default='vgg11_3d')
+                                          'cnn5fc2', 'cnn6fc2', 'cnn2fc1', 'cnn3fc2', 'r3d_18', 'slow_r50',
+                                          'slowfast_r50', 'x3d_xs', 'x3d_s', 'x3d_m', 'x3d_l'),# 'r2plus1d_18' out of memory
+                        help='network name', type=str, default='vgg11_3d')
     parser.add_argument('--fc2_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
                         default=1024)
     parser.add_argument('--fc1_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
@@ -39,13 +42,14 @@ def get_args():
                         default=0.0001)  # must be a float number !
     parser.add_argument('--lr', help='learning rate', type=float, default=0.0001)
 
-    parser.add_argument('--batch_size', help='batch_size', type=int, default=5)
+    parser.add_argument('--batch_size', help='batch_size', type=int, default=1)
     parser.add_argument('--ct_sp', help='space', type=str, default='1.5')
     parser.add_argument('--kfold_seed', help='kfold_seed', type=int, default=711)
     parser.add_argument('--test_pat', help='testing patients', choices=('zhiwei77', 'random'), type=str, default='random')
+    parser.add_argument('--input_mode', help='what to input', choices=('ct', 'vessel_mask'), type=str, default='vessel')
 
     parser.add_argument('--target', help='target prediction', type=str,
-                        default='FVC-DLCO_SB-FEV1-TLC_He-DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred')  # FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight-
+                        default='FVC-DLCO_SB-FEV1-TLC_He')  # FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight--DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred
 
     parser.add_argument('--outfile', help='output file when running by script instead of pycharm', type=str)
     parser.add_argument('--hostname', help='hostname of the server', type=str)

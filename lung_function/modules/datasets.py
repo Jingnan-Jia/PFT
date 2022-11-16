@@ -20,26 +20,32 @@ import pandas as pd
 from torch.utils.data import Dataset
 import monai
 from sklearn.model_selection import KFold
-from lung_function.modules.trans import LoadDatad, SaveDatad, RandomCropForegroundd
+from lung_function.modules.trans import LoadDatad, SaveDatad, RandomCropForegroundd, RemoveTextd
 import os
 
-PAD_DONE = True
+PAD_DONE = False
 
-def xformd(mode, z_size: int = 192, y_size: int = 256, x_size: int = 256, pad_truncated_dir='tmp', target='FVC', crop_foreground=False, pad_ratio=1):
+def xformd(mode, z_size: int = 192, y_size: int = 256, x_size: int = 256, pad_truncated_dir='tmp', target='FVC', crop_foreground=False, pad_ratio=1, inputmode=None):
     post_pad_size = [int(i * pad_ratio) for i in [z_size, y_size, x_size]]
-
-    keys = ('image', 'lung_mask')
+    
+    if inputmode=='vessel':
+        keys = ('vessel', 'lung_mask')
+        pad_value = 0
+    elif inputmode=='image':
+        keys = ('image', 'lung_mask')
+        pad_value = -1500
+    else:
+        raise Exception(f"wrong input mode: {inputmode}")
     global PAD_DONE
     if not PAD_DONE or not os.path.isdir(pad_truncated_dir):
         PAD_DONE = False
         if not os.path.isdir(pad_truncated_dir):
             os.makedirs(pad_truncated_dir)
-        xforms = [LoadDatad(target=target, crop_foreground=crop_foreground), AddChanneld(keys=keys)]
-        xforms.extend([SpatialPadd(keys='image', spatial_size=post_pad_size, mode='constant', constant_values=-1500),
-                       SpatialPadd(keys='lung_mask', spatial_size=post_pad_size, mode='constant',
-                                   constant_values= 0),
-                       ScaleIntensityRanged(keys=('image',), a_min=-1500, a_max=1500, b_min=-1, b_max=1, clip=True)])
-        xforms.append(SaveDatad(pad_truncated_dir))
+        xforms = [LoadDatad(keys=keys[0], target=target, crop_foreground=crop_foreground), AddChanneld(keys=keys)]
+        xforms.extend([SpatialPadd(keys=keys[0], spatial_size=post_pad_size, mode='constant', constant_values=pad_value),
+                       SpatialPadd(keys=keys[1], spatial_size=post_pad_size, mode='constant', constant_values= 0),
+                       ScaleIntensityRanged(keys=keys[0], a_min=-1500, a_max=1500, b_min=-1, b_max=1, clip=True)])
+        xforms.append(SaveDatad(keys=keys[0], pad_truncated_dir=pad_truncated_dir))
     else:
         xforms = [LoadDatad(target=target, crop_foreground=crop_foreground), AddChanneld(keys=keys)]
     # xforms.append()
@@ -56,7 +62,8 @@ def xformd(mode, z_size: int = 192, y_size: int = 256, x_size: int = 256, pad_tr
 
     # ('pat_id', 'image', 'lung_mask', 'origin', 'spacing', 'label')
     xforms.extend([CastToTyped(keys = keys, dtype=np.float32),
-                   ToTensord(keys = keys)])
+                   ToTensord(keys = keys),
+                   RemoveTextd(keys='fpath')])
     transform = monai.transforms.Compose(xforms)
 
     return transform
@@ -71,8 +78,10 @@ def clean_data(pft_df, data_dir):
     pft_df.drop(pft_df[pft_df['DLCOc/pred'] == "NV"].index, inplace=True)
     pft_df.drop(pft_df[pft_df['FVC/predNew'] == "NV"].index, inplace=True)
 
-    scans = glob.glob(data_dir + "/SSc*[!LungMask].nii.gz")  # exclude lung mask files
-    availabel_id_set = set([Path(id).stem[:-4] for id in scans])  # use stem and :-4 to remove .nii.gz
+    scans = glob.glob(data_dir + "/SSc_patient_???????_GcVessel.nii.gz")  # get availabel files
+
+
+    availabel_id_set = set([Path(id).stem[:19] for id in scans])  # use stem and :-4 to remove .nii.gz
     pft_df.drop(pft_df.loc[~pft_df['subjectID'].isin(availabel_id_set)].index, inplace=True)
 
 
@@ -90,13 +99,28 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
     label_excel = pd.read_excel(label_fpath, engine='openpyxl')
     label_excel = label_excel.sort_values(by=['subjectID'])
     label_excel = clean_data(label_excel, data_dir)
+
+
+
+
     # 3 labels for one level
     data = np.array(label_excel.to_dict('records'))  # nparray is easy for kfold split
     for d in data:
         if not PAD_DONE or not os.path.isdir(pad_truncated_dir):
-            d['fpath'] = data_dir + '/' + d['subjectID'] + '.nii.gz'
+            if args.input_mode=="vessel":
+                d['fpath'] = data_dir + '/' + d['subjectID'] + '_GcVessel.nii.gz'
+            elif args.input_mode=="ct":
+                d['fpath'] = data_dir + '/' + d['subjectID'] + '.nii.gz'
+            else:
+                raise Exception(f"wrong input mode: {args.input_mode}")
         else:
-            d['fpath'] = pad_truncated_dir + '/' + d['subjectID'] + '.nii.gz'
+            if args.input_mode=="vessel":
+                d['fpath'] = pad_truncated_dir + '/' + d['subjectID'] + '_GcVessel.nii.gz'
+            elif args.input_mode=="ct":
+                d['fpath'] = pad_truncated_dir + '/' + d['subjectID'] + '.nii.gz'
+            else:
+                raise Exception(f"wrong input mode: {args.input_mode}")
+
     # sub_id = pd.DataFrame(label_excel, columns=['subjectID']).values
     # sub_id = [i[0][-7:] for i in sub_id]
     #
@@ -150,17 +174,17 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
     # tsxformd = xformd('test')
     data_dt = {}
     if 'train' in datasetmode:
-        tr_dataset = monai.data.CacheDataset(data=tr_data, transform=xformd('train', z_size=args.z_size, y_size=args.y_size, x_size=args.x_size, pad_truncated_dir=pad_truncated_dir, target=args.target, crop_foreground=args.crop_foreground, pad_ratio=args.pad_ratio), num_workers=0, cache_rate=1)
+        tr_dataset = monai.data.CacheDataset(data=tr_data, transform=xformd('train', z_size=args.z_size, y_size=args.y_size, x_size=args.x_size, pad_truncated_dir=pad_truncated_dir, target=args.target, crop_foreground=args.crop_foreground, pad_ratio=args.pad_ratio, inputmode=args.input_mode), num_workers=0, cache_rate=1)
         train_dataloader = DataLoader(tr_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.workers, persistent_workers=True)
         data_dt['train'] = train_dataloader
 
     if 'valid' in datasetmode:
-        vd_dataset = monai.data.CacheDataset(data=vd_data, transform=xformd('valid', z_size=args.z_size, y_size=args.y_size, x_size=args.x_size, pad_truncated_dir=pad_truncated_dir, target=args.target, crop_foreground=args.crop_foreground, pad_ratio=args.pad_ratio), num_workers=0, cache_rate=1)
+        vd_dataset = monai.data.CacheDataset(data=vd_data, transform=xformd('valid', z_size=args.z_size, y_size=args.y_size, x_size=args.x_size, pad_truncated_dir=pad_truncated_dir, target=args.target, crop_foreground=args.crop_foreground, pad_ratio=args.pad_ratio, inputmode=args.input_mode), num_workers=0, cache_rate=1)
         valid_dataloader = DataLoader(vd_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.workers, persistent_workers=True)
         data_dt['valid'] = valid_dataloader
 
     if 'test' in datasetmode:
-        ts_dataset = monai.data.CacheDataset(data=ts_data, transform=xformd('test', z_size=args.z_size, y_size=args.y_size, x_size=args.x_size, pad_truncated_dir=pad_truncated_dir, target=args.target, crop_foreground=args.crop_foreground, pad_ratio=args.pad_ratio), num_workers=0, cache_rate=1)
+        ts_dataset = monai.data.CacheDataset(data=ts_data, transform=xformd('test', z_size=args.z_size, y_size=args.y_size, x_size=args.x_size, pad_truncated_dir=pad_truncated_dir, target=args.target, crop_foreground=args.crop_foreground, pad_ratio=args.pad_ratio, inputmode=args.input_mode), num_workers=0, cache_rate=1)
         test_dataloader = DataLoader(ts_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.workers, persistent_workers=True)
         data_dt['test'] = test_dataloader
 

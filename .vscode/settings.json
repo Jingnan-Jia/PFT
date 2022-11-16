@@ -1,0 +1,8 @@
+{
+    "files.watcherExclude": {
+        "**/.idea/**": true,
+        "**/.vscode/**": true,
+        "**/mlruns/**": true,
+        "**/results/**": true
+    }
+}
