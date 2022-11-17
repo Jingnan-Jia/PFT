@@ -29,23 +29,26 @@ def xformd(mode, z_size: int = 192, y_size: int = 256, x_size: int = 256, pad_tr
     post_pad_size = [int(i * pad_ratio) for i in [z_size, y_size, x_size]]
     
     if inputmode=='vessel':
-        keys = ('vessel', 'lung_mask')
+        keys = ('vessel', )
         min_value, max_value = 0, 1
     elif inputmode=='image':
-        keys = ('image', 'lung_mask')
+        keys = ('image', )
         min_value, max_value = -1500, 1500
     else:
         raise Exception(f"wrong input mode: {inputmode}")
+    if crop_foreground:
+        keys = keys + ('lung_mask',)
     global PAD_DONE
     if not PAD_DONE or not os.path.isdir(pad_truncated_dir):
         PAD_DONE = False
         if not os.path.isdir(pad_truncated_dir):
             os.makedirs(pad_truncated_dir)
         xforms = [LoadDatad(keys=keys[0], target=target, crop_foreground=crop_foreground), AddChanneld(keys=keys)]
-        xforms.extend([SpatialPadd(keys=keys[0], spatial_size=post_pad_size, mode='constant', constant_values=min_value),
-                       SpatialPadd(keys=keys[1], spatial_size=post_pad_size, mode='constant', constant_values= 0),
-                       ScaleIntensityRanged(keys=keys[0], a_min=min_value, a_max=max_value, b_min=-1, b_max=1, clip=True)])
-        xforms.append(SaveDatad(keys=keys[0], pad_truncated_dir=pad_truncated_dir))
+        xforms.append(SpatialPadd(keys=keys[0], spatial_size=post_pad_size, mode='constant', constant_values=min_value))
+        if crop_foreground:
+            xforms.append(SpatialPadd(keys=keys[1], spatial_size=post_pad_size, mode='constant', constant_values= 0))
+        xforms.append(ScaleIntensityRanged(keys=keys[0], a_min=min_value, a_max=max_value, b_min=-1, b_max=1, clip=True))
+        xforms.append(SaveDatad(keys=keys[0], pad_truncated_dir=pad_truncated_dir, crop_foreground=crop_foreground))
     else:
         xforms = [LoadDatad(target=target, crop_foreground=crop_foreground), AddChanneld(keys=keys)]
     # xforms.append()
@@ -82,6 +85,7 @@ def clean_data(pft_df, data_dir):
 
 
     availabel_id_set = set([Path(id).stem[:19] for id in scans])  # use stem and :-4 to remove .nii.gz
+    # 
     pft_df.drop(pft_df.loc[~pft_df['subjectID'].isin(availabel_id_set)].index, inplace=True)
 
 
@@ -195,4 +199,3 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
     #     data_dt['trainnoaug'] = train_dataloader_no_aug
 
     return data_dt
-

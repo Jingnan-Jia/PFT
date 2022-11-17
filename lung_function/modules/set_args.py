@@ -46,7 +46,7 @@ def get_args():
     parser.add_argument('--ct_sp', help='space', type=str, default='1.5')
     parser.add_argument('--kfold_seed', help='kfold_seed', type=int, default=711)
     parser.add_argument('--test_pat', help='testing patients', choices=('zhiwei77', 'random'), type=str, default='random')
-    parser.add_argument('--input_mode', help='what to input', choices=('ct', 'vessel_mask'), type=str, default='vessel')
+    parser.add_argument('--input_mode', help='what to input', choices=('ct', 'vessel'), type=str, default='vessel')
 
     parser.add_argument('--target', help='target prediction', type=str,
                         default='FVC-DLCO_SB-FEV1-TLC_He')  # FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight--DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred
@@ -55,7 +55,7 @@ def get_args():
     parser.add_argument('--hostname', help='hostname of the server', type=str)
     parser.add_argument('--remark', help='comments on this experiment', type=str, default='None')
     parser.add_argument('--jobid', help='slurm job_id', type=int, default=0)
-    parser.add_argument('--crop_foreground', help='crop_foreground', type=boolean_string, default='True')
+    parser.add_argument('--crop_foreground', help='crop_foreground', type=boolean_string, default='False')
 
     parser.add_argument('--z_size', help='length of patch along z axil ', type=int, default=240)
     parser.add_argument('--y_size', help='length of patch along y axil ', type=int, default=240)

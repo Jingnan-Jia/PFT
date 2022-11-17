@@ -40,24 +40,27 @@ class RemoveTextd(MapTransform):
 class SaveDatad(MapTransform):
     """Save the padded data, so that next time we can load the data directly, to save time.
     """
-    def __init__(self, keys, pad_truncated_dir):
+    def __init__(self, keys, pad_truncated_dir, crop_foreground=True):
         super().__init__(keys, allow_missing_keys=True)
         self.pad_truncated_dir = pad_truncated_dir
+        self.crop_foreground=crop_foreground
 
     def __call__(self, data: TransInOut) -> TransInOut:
         d = data
         for key in self.keys:
             fpath = f"{self.pad_truncated_dir}/{Path(str(d['fpath'][0])).name}"
             save_itk(filename=fpath, scan=d[key][0], origin=list(d['origin'].astype(np.float)), spacing=list(d['spacing'].astype(np.float)), dtype=float)
-            if key=='vessel':
-                fpath_lungmask = fpath.replace('_GcVessel.nii.gz', '_LungMask.nii.gz')
-            elif key=='image':
-                fpath_lungmask = fpath.replace('.nii.gz', '_LungMask.nii.gz')
-            else:
-                raise Exception(f"please input proper key")
-            save_itk(filename=fpath_lungmask, scan=d['lung_mask'][0], origin=list(d['origin'].astype(np.float)), spacing=list(d['spacing'].astype(np.float)))
+            print(f"successfully save pad_truncated data to {fpath}")
+            if self.crop_foreground:
+                if key=='vessel':
+                    fpath_lungmask = fpath.replace('_GcVessel.nii.gz', '_LungMask.nii.gz')
+                elif key=='image':
+                    fpath_lungmask = fpath.replace('.nii.gz', '_LungMask.nii.gz')
+                else:
+                    raise Exception(f"please input proper key")
+                save_itk(filename=fpath_lungmask, scan=d['lung_mask'][0], origin=list(d['origin'].astype(np.float)), spacing=list(d['spacing'].astype(np.float)))
 
-            print(f"successfully save pad_truncated data to {fpath} and {fpath_lungmask}")
+                print(f"successfully save pad_truncated data to {fpath_lungmask}")
         return d
 
 

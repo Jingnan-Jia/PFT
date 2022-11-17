@@ -70,7 +70,7 @@ def reinit_fc(net, nb_fc0, fc1_nodes, fc2_nodes, num_classes):
 
 def int2str(batch_id: np.ndarray) -> np.ndarray:
     id_str_ls = []
-    for id in batch_id:
+    for id in batch_id[0]:
         id = str(id)
         while len(id) < 7:  # the pat id should be 7 digits
             id = '0' + id
@@ -178,7 +178,7 @@ class Run:
                     head = ['pat_id']
                     head.extend(self.target)
 
-                    batch_pat_id = data['pat_id'].cpu().detach().numpy()
+                    batch_pat_id = data['pat_id'].cpu().detach().numpy() 
                     batch_pat_id = int2str(batch_pat_id)
 
                     batch_y_np = batch_y.cpu().detach().numpy()
