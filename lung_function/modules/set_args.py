@@ -17,7 +17,7 @@ def get_args():
 
     # Common args with set_args.py
     parser.add_argument('--mode', choices=('train', 'infer', 'continue_train'), help='mode', type=str, default='train')
-    parser.add_argument('--pretrained_id', help='id used for inference, or continue_train', type=str, default='0') #SSc-852-853-854-855
+    parser.add_argument('--pretrained_id', help='id used for inference, or continue_train', type=str, default='SSc-852-853-854-855') #SSc-852-853-854-855
     # parser.add_argument('--reload_jobid', help='jobid used for inference, or continue_train', type=int, default=0)
 
     parser.add_argument('--pretrained_imgnet', help='if pretrained from imagenet', type=boolean_string, default='False')
@@ -37,7 +37,7 @@ def get_args():
     parser.add_argument('--loss', choices=('mse', 'mae', 'smooth_mae', 'mse+mae', 'msehigher'), help='mode', type=str,
                         default='mse')
     parser.add_argument('--pretrained', choices=(1, 0), help='pretrained or not', type=int, default=0)
-    parser.add_argument('--epochs', help='total epochs', type=int, default=500)
+    parser.add_argument('--epochs', help='total epochs', type=int, default=1)
     parser.add_argument('--weight_decay', help='L2 regularization', type=float,
                         default=0.0001)  # must be a float number !
     parser.add_argument('--lr', help='learning rate', type=float, default=0.0001)
@@ -45,7 +45,7 @@ def get_args():
     parser.add_argument('--batch_size', help='batch_size', type=int, default=1)
     parser.add_argument('--ct_sp', help='space', type=str, default='1.5')
     parser.add_argument('--kfold_seed', help='kfold_seed', type=int, default=711)
-    parser.add_argument('--test_pat', help='testing patients', choices=('zhiwei77', 'random'), type=str, default='random')
+    parser.add_argument('--test_pat', help='testing patients', choices=('zhiwei77', 'random', 'random_as_ori'), type=str, default='random_as_ori')
     parser.add_argument('--input_mode', help='what to input', choices=('ct', 'vessel'), type=str, default='vessel')
 
     parser.add_argument('--target', help='target prediction', type=str,

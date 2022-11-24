@@ -2,6 +2,9 @@
 # @Time    : 7/11/21 2:31 PM
 # @Author  : Jingnan
 # @Email   : jiajingnan2222@gmail.com
+import sys
+sys.path.append("../..")
+
 import glob
 import random
 from medutils.medutils import load_itk
@@ -84,8 +87,9 @@ def clean_data(pft_df, data_dir):
     scans = glob.glob(data_dir + "/SSc_patient_???????_GcVessel.nii.gz")  # get availabel files
 
 
-    availabel_id_set = set([Path(id).stem[:19] for id in scans])  # use stem and :-4 to remove .nii.gz
-    # 
+    availabel_id_set = set([Path(id).stem[:19] for id in scans if not (('0422335' in id) 
+    or ('0456204' in id) or ('6216732' in id) or ('6318989' in id))])  # exclude '422335' which has bad image quality
+
     pft_df.drop(pft_df.loc[~pft_df['subjectID'].isin(availabel_id_set)].index, inplace=True)
 
 
@@ -96,12 +100,23 @@ def clean_data(pft_df, data_dir):
 
     return pft_df
 
+def pat_fromo_csv(mode: str, data) -> np.ndarray:
+    tmp_ls = []
+    df = pd.read_csv(f"/data1/jjia/lung_function/lung_function/scripts/results/experiments/914/{mode}_label.csv")
+    pat_ls = [patid for patid in df['pat_id']]
+    for d in data:
+        if int(d['subjectID'].split('_')[-1]) in pat_ls:
+            tmp_ls.append(d)
+    tmp_np = np.array(tmp_ls)
+    return tmp_np
+    
 def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'test'), nb=None):
 
     pad_truncated_dir = f"/home/jjia/data/dataset/lung_function/iso{args.ct_sp}/z{args.z_size}x{args.x_size}y{args.y_size}_pad_ratio{str(args.pad_ratio)}"
 
     label_excel = pd.read_excel(label_fpath, engine='openpyxl')
     label_excel = label_excel.sort_values(by=['subjectID'])
+
     label_excel = clean_data(label_excel, data_dir)
 
 
@@ -138,37 +153,43 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
     # data = [{'id':id, 'DLCO': , 'fpath': mypath.data_dir + '/' + id} for id in sub_id]
 
     # random.shuffle(data)  # Four fold are not right !!!
-    kf = KFold(n_splits=args.total_folds, shuffle=True, random_state=args.kfold_seed)  # for future reproduction
-
-    if hasattr(args, 'test_pat') and args.test_pat == 'zhiwei77':
-        ts_pat_ids = ['9071115', '6503304', '6587088', '7852072', '0911478', '5112278', '9075756', '4125990', '0584534',
-'4945176', '3034278', '2712128', '1043946', '9934096', '5240010', '7135410', '7421048', '9367440', '5576984', '0152440',
-'3154090', '1160750', '6484444', '1105441', '4628660', '4171220', '1146160', '2131790', '0163750', '2151769', '5174713',
-'8365740', '2524918', '9239682', '3243752', '2341332', '7234834', '9160660', '5262908', '2253442', '0992750', '3567342',
-'5271048', '8278747', '9662556', '0222357', '8229975', '0139552', '0458234', '9241693', '3901150', '9300979', '0298877',
-'3228438', '8960279', '4107789', '7740702', '7252792', '8303176', '8492153', '5299407', '7957098', '1499510', '5323286',
-'5325396', '3310402', '5813928', '6122288', '0315573', '2346390', '5869896', '0280727', '5352138', '8353193', '5321814',
-'6329587', '1397732',]
-        ts_data, tr_vd_data = [], []
-        for d in data:
-            if d['subjectID'].split('_')[-1] in ts_pat_ids:
-                ts_data.append(d)
-            else:
-                tr_vd_data.append(d)
-        ts_data = np.array(ts_data)
-        tr_vd_data = np.array(tr_vd_data)
-        print(f"length of testing data: {len(ts_data)}")
+    if args.test_pat == 'random_as_ori':
+        
+        tr_data = pat_fromo_csv('train', data)
+        vd_data = pat_fromo_csv('valid', data)
+        ts_data = pat_fromo_csv('test', data)
     else:
-        ts_nb = int(0.2 * len(data))
-        tr_vd_data, ts_data = data[:-ts_nb], data[-ts_nb:]
-    kf_list = list(kf.split(tr_vd_data))
-    tr_pt_idx, vd_pt_idx = kf_list[args.fold - 1]
-    tr_data = tr_vd_data[tr_pt_idx]
-    vd_data = tr_vd_data[vd_pt_idx]
-    print(f"length of training data: {len(tr_data)}")
+        kf = KFold(n_splits=args.total_folds, shuffle=True, random_state=args.kfold_seed)  # for future reproduction
+
+        if hasattr(args, 'test_pat') and args.test_pat == 'zhiwei77':
+            ts_pat_ids = ['9071115', '6503304', '6587088', '7852072', '0911478', '5112278', '9075756', '4125990', '0584534',
+    '4945176', '3034278', '2712128', '1043946', '9934096', '5240010', '7135410', '7421048', '9367440', '5576984', '0152440',
+    '3154090', '1160750', '6484444', '1105441', '4628660', '4171220', '1146160', '2131790', '0163750', '2151769', '5174713',
+    '8365740', '2524918', '9239682', '3243752', '2341332', '7234834', '9160660', '5262908', '2253442', '0992750', '3567342',
+    '5271048', '8278747', '9662556', '0222357', '8229975', '0139552', '0458234', '9241693', '3901150', '9300979', '0298877',
+    '3228438', '8960279', '4107789', '7740702', '7252792', '8303176', '8492153', '5299407', '7957098', '1499510', '5323286',
+    '5325396', '3310402', '5813928', '6122288', '0315573', '2346390', '5869896', '0280727', '5352138', '8353193', '5321814',
+    '6329587', '1397732',]
+            ts_data, tr_vd_data = [], []
+            for d in data:
+                if d['subjectID'].split('_')[-1] in ts_pat_ids:
+                    ts_data.append(d)
+                else:
+                    tr_vd_data.append(d)
+            ts_data = np.array(ts_data)
+            tr_vd_data = np.array(tr_vd_data)
+            print(f"length of testing data: {len(ts_data)}")
+        else:
+            ts_nb = int(0.2 * len(data))
+            tr_vd_data, ts_data = data[:-ts_nb], data[-ts_nb:]
+        kf_list = list(kf.split(tr_vd_data))
+        tr_pt_idx, vd_pt_idx = kf_list[args.fold - 1]
+        tr_data = tr_vd_data[tr_pt_idx]
+        vd_data = tr_vd_data[vd_pt_idx]
+        print(f"length of training data: {len(tr_data)}")
     if nb:
         tr_data, vd_data, ts_data = tr_data[:nb], vd_data[:nb], ts_data[:nb]
-    # tr_data, vd_data, ts_data = tr_data[:5], vd_data[:5], ts_data[:5]
+    # tr_data, vd_data, ts_data = tr_data[:10], vd_data[:10], ts_data[:10]
     for d in [tr_data, vd_data, ts_data]:
         print(f"-----")
         for d_one in d:

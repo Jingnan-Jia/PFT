@@ -351,7 +351,7 @@ if __name__ == "__main__":
 
 
     mlflow.set_tracking_uri("http://nodelogin02:5000")
-    experiment = mlflow.set_experiment("lung_fun_db15")
+    experiment = mlflow.set_experiment("lung_fun_db2")
     record_fpath = "results/record.log"
     id = record_1st(record_fpath)  # write super parameters from set_args.py to record file.
 
