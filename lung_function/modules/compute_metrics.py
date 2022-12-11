@@ -63,10 +63,16 @@ def icc(label_fpath, pred_fpath):
 
     return icc_dict
 
-def metrics(pred_fpath, label_fpath):
+def metrics(pred_fpath, label_fpath, ignore_1st_column=False):
+    """
+    ignore_1st_column: ignore the index column
+    """
     r_dict, p_dict = {}, {}
     df_pred = pd.read_csv(pred_fpath)
     df_label = pd.read_csv(label_fpath)
+    if ignore_1st_column:
+        df_pred = df_pred.iloc[: , 1:]
+        df_label = df_label.iloc[: , 1:]
     print('len_df_label', len(df_label))
 
 

@@ -24,6 +24,7 @@ from monai.transforms.utils import (
 TransInOut = Dict[Hashable, Optional[Union[np.ndarray, torch.Tensor, str, int]]]
 # Note: all transforms here must inheritage Transform, Transform, or RandomTransform.
 
+
 class RemoveTextd(MapTransform):
     """
     Remove the text to avoid the Error: TypeError: default_collate: batch must contain tensors, numpy arrays, numbers, dicts or lists; found <U80
@@ -36,6 +37,7 @@ class RemoveTextd(MapTransform):
         for key in self.keys:
             del d[key] 
         return d
+ 
 
 class SaveDatad(MapTransform):
     """Save the padded data, so that next time we can load the data directly, to save time.
@@ -62,6 +64,33 @@ class SaveDatad(MapTransform):
 
                 print(f"successfully save pad_truncated data to {fpath_lungmask}")
         return d
+
+
+class LoadPointCloud(MapTransform):
+    def __init__(self, keys, target, PNB):
+        super().__init__(keys, allow_missing_keys=True)
+        self.target = [i.lstrip() for i in target.split('-')]
+        self.PNB = PNB
+
+    def __call__(self, data: TransInOut) -> TransInOut:
+        fpath = data['fpath']
+        print(f"loading {fpath}")
+        xyzr = pd.read_pickle(fpath)
+        xyz_mm = xyzr['data'][:self.PNB,:3] * xyzr['spacing']  # convert voxel location to physical mm
+        xyzr_mm = np.concatenate((xyz_mm, xyzr['data'][:self.PNB,-1].reshape(-1,1)), axis=1)
+        y = np.array([data[i] for i in self.target])
+        # print(f"{fpath}, {y}")
+        file_id = fpath.split(".nii.gz")[0].split('SSc_patient_')[-1].split('_')[0]
+        new_data = {'pat_id': np.array([int(file_id)]),  # Note: save it as a array. extract the patient id as a int, otherwise, error occured: TypeError: default_collate: batch must contain tensors, numpy arrays, numbers, dicts or lists; found <U21
+                    self.keys[0]: xyzr_mm.astype(np.float32),
+                    'origin': xyzr['origin'],
+                    'spacing': xyzr['spacing'],
+                    'label': y.astype(np.float32),
+                    'fpath': np.array([fpath])}
+        assert len(xyzr_mm) == self.PNB
+
+        return new_data
+
 
 
 class LoadDatad(MapTransform):

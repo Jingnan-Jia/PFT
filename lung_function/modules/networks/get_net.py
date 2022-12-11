@@ -9,10 +9,24 @@ from .vit3 import ViT3
 from torch import nn
 import torch
 import torchvision
+import importlib
+import sys
+sys.path.append("models_pcd")
 
 def get_net_3d(name: str, nb_cls: int, fc1_nodes=1024, fc2_nodes=1024,image_size=240, pretrained=True):
     level_node = 0
-    if name == 'cnn3fc1':
+    if 'pointnet' in name:
+        # if name=='pointnet_reg':
+        def inplace_relu(m):
+            classname = m.__class__.__name__
+            if classname.find('ReLU') != -1:
+                m.inplace=True
+        pcd_model = importlib.import_module(name)
+        net = pcd_model.get_model(nb_cls)
+        net.apply(inplace_relu)
+        # elif name=='pointnet2_reg':
+
+    elif name == 'cnn3fc1':
         net = Cnn3fc1(fc1_nodes=fc1_nodes, fc2_nodes=fc2_nodes, num_classes=nb_cls, level_node=level_node)
     elif name == 'cnn3fc2':
         net = Cnn3fc2(fc1_nodes=fc1_nodes, fc2_nodes=fc2_nodes, num_classes=nb_cls, level_node=level_node)

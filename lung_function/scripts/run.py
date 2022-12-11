@@ -5,32 +5,32 @@
 # log_dict is used to record super parameters and metrics
 
 import sys
-from typing import List
-
-sys.path.append("../..")
-from mlflow import log_metric, log_metrics, log_param, log_params
-import mlflow
+import random
+import statistics
 import threading
 import time
-from medutils.medutils import count_parameters
-from medutils import medutils
-from queue import Queue
+
+import mlflow
+import numpy as np
 import torch
 import torch.nn as nn
-import copy
-import statistics
+from medutils import medutils
+from medutils.medutils import count_parameters
+from mlflow import log_metric, log_metrics, log_param, log_params
 from mlflow.tracking import MlflowClient
-import numpy as np
-import random
 from monai.utils import set_determinism
 
+from lung_function.modules import provider
+from lung_function.modules.compute_metrics import icc, metrics
 from lung_function.modules.datasets import all_loaders
 from lung_function.modules.loss import get_loss
 from lung_function.modules.networks import get_net_3d
 from lung_function.modules.path import PFTPath
 from lung_function.modules.set_args import get_args
-from lung_function.modules.tool import record_1st, record_artifacts, record_cgpu_info, retrive_run
-from lung_function.modules.compute_metrics import icc, metrics
+from lung_function.modules.tool import (record_1st, record_cgpu_info, retrive_run)
+import sys
+sys.path.append("../modules/networks/models_pcd")
+
 args = get_args()
 global_lock = threading.Lock()
 
@@ -69,18 +69,28 @@ def reinit_fc(net, nb_fc0, fc1_nodes, fc2_nodes, num_classes):
 
 
 def int2str(batch_id: np.ndarray) -> np.ndarray:
+    tmp = batch_id.shape 
     id_str_ls = []
-    for id in batch_id[0]:
+    for id in batch_id:
+        if isinstance(id, np.ndarray):
+            id = id[0]
         id = str(id)
         while len(id) < 7:  # the pat id should be 7 digits
             id = '0' + id
-        id_str_ls.append(id)
+        if len(tmp)==2:
+            id_str_ls.append([id])
+        elif len(tmp)==1:
+            id_str_ls.append(id)
+        else:
+            raise Exception(f"the shape of batch_id is {tmp}, but it should be 1-dim or 2-dim")
+
     return np.array(id_str_ls)
+
 
 class Run:
     def __init__(self, args):
         self.mypath = PFTPath(args.id, check_id_dir=False, space=args.ct_sp)
-        self.device = torch.device("cuda")
+        self.device = torch.device("cuda")  # 'cuda'
         self.target = [i.lstrip() for i in args.target.split('-')]
         self.net = get_net_3d(name=args.net, nb_cls=len(self.target), image_size=args.x_size, pretrained=args.pretrained_imgnet) # output FVC and FEV1
         self.fold = args.fold
@@ -163,10 +173,28 @@ class Run:
                 log_metric('TLoad', t1-t0, data_idx+epoch_idx*len(dataloader))
             if args.input_mode=='vessel':
                 key = 'vessel'
+            elif args.input_mode == 'vessel_skeleton_pcd':
+                key = 'vessel_skeleton_pcd'
+                points = data[key].data.numpy()
+                if points.shape[0] == 1: # batch size=1
+                    points = np.concatenate([points, points])
+                    data['label'] = np.concatenate([data['label'], data['label']])
+                    data['label'] = torch.tensor(data['label'])
+
+
+                points = provider.random_point_dropout(points)
+                points[:, :, 0:3] = provider.random_scale_point_cloud(points[:, :, 0:3])
+                points[:, :, 0:3] = provider.shift_point_cloud(points[:, :, 0:3])
+                points = torch.Tensor(points)
+                points = points.transpose(2, 1)
+                data[key] = points
+                
             else:
                 key = 'image'
             batch_x = data[key].to(self.device)
             batch_y = data['label'].to(self.device)
+
+
             with torch.cuda.amp.autocast():
                 if mode != 'train' or save_pred:  # save pred for inference
                     with torch.no_grad():
@@ -178,13 +206,18 @@ class Run:
                     head = ['pat_id']
                     head.extend(self.target)
 
-                    batch_pat_id = data['pat_id'].cpu().detach().numpy() 
-                    batch_pat_id = int2str(batch_pat_id)
+                    batch_pat_id = data['pat_id'].cpu().detach().numpy()  # shape (N,1)
+                    batch_pat_id = int2str(batch_pat_id)  # shape (N,1)
 
-                    batch_y_np = batch_y.cpu().detach().numpy()
-                    pred_np = pred.cpu().detach().numpy()
+                    batch_y_np = batch_y.cpu().detach().numpy()  # shape (N, out_nb)
+                    pred_np = pred.cpu().detach().numpy()  # shape (N, out_nb)
 
-                    batch_pat_id = np.expand_dims(batch_pat_id, axis=-1)  # change the shape from (N,) to (N, 1)
+
+                    # batch_pat_id = np.expand_dims(batch_pat_id, axis=-1)  # change the shape from (N,) to (N, 1)
+
+                    if args.input_mode == 'vessel_skeleton_pcd' and len(batch_pat_id)==1:  # shape (1,1)
+                        batch_pat_id = np.array([[int(batch_pat_id[0])], [int(batch_pat_id[0])]])
+                        batch_pat_id = torch.tensor(batch_pat_id)
 
                     saved_label = np.hstack((batch_pat_id, batch_y_np))
                     saved_pred = np.hstack((batch_pat_id, pred_np))
@@ -271,7 +304,7 @@ def run(args):
     pred_ls = [mypath.save_pred_fpath(mode) for mode in modes]
 
     for pred_fpath, label_fpath in zip(pred_ls, label_ls):
-        r_p_value = metrics(pred_fpath, label_fpath)
+        r_p_value = metrics(pred_fpath, label_fpath, ignore_1st_column=True)
         log_params(r_p_value)
         print('r_p_value:', r_p_value)
 
@@ -351,7 +384,7 @@ if __name__ == "__main__":
 
 
     mlflow.set_tracking_uri("http://nodelogin02:5000")
-    experiment = mlflow.set_experiment("lung_fun_db2")
+    experiment = mlflow.set_experiment("lung_fun_db15")
     record_fpath = "results/record.log"
     id = record_1st(record_fpath)  # write super parameters from set_args.py to record file.
 
@@ -370,7 +403,7 @@ if __name__ == "__main__":
     # to here =======================================================
     if args.mode=='infer':  # get the id of the run
         client = MlflowClient()
-        run_ls = client.search_runs(experiment_ids=[experiment.experiment_id], run_view_type=2,
+        run_ls = client.search_runs(experiment_ids=[experiment.experiment_id], run_view_type=3, # run_view_type=2 means the 'deleted'
                                     filter_string=f"params.id LIKE '%{args.pretrained_id}%'")
         run_ = run_ls[0]
         run_id = run_.info.run_id
