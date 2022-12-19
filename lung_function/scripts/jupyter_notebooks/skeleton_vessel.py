@@ -29,10 +29,14 @@ def skeleton_vessel(file_fpath, out_fpath):
     # skeletonize_3d(img)
 
 def main():
-    vessel_HR_ls = sorted(glob("/home/jjia/data/dataset/lung_function/ori_resolution/SSc_patient_0495338.mha"))
+    vessel_HR_ls = sorted(glob("/home/jjia/data/dataset/lung_function/ori_resolution/SSc_patient_0422335.mha"))
+    # vessel_HR_ls = ["/home/jjia/data/dataset/lung_function/ori_resolution/SSc_patient_0422335.mha",
+    # "/home/jjia/data/dataset/lung_function/ori_resolution/SSc_patient_0456204.mha",
+    # "/home/jjia/data/dataset/lung_function/ori_resolution/SSc_patient_6216723.mha",
+    # "/home/jjia/data/dataset/lung_function/ori_resolution/SSc_patient_6318939.mha"]
     vessel_skeleton_ls = [i.replace('.mha', '_skeleton.mha') for i in vessel_HR_ls]
     print(len(vessel_HR_ls))
-    pool = Pool(processes=8)
+    pool = Pool(processes=4)
 
     for source, target in zip(vessel_HR_ls, vessel_skeleton_ls):
         # skeleton_vessel(source, target)
