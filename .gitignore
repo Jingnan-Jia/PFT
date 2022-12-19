@@ -8,3 +8,8 @@ lung_function/modules/__pycache__/
 .idea
 *.db
 *.csv
+*.mha
+*.mhd
+*.nii.gz
+*.nrrd
+*.nii
