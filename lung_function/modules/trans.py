@@ -2,25 +2,16 @@
 # @Time    : 7/5/21 4:01 PM
 # @Author  : Jingnan
 # @Email   : jiajingnan2222@gmail.com
-import os
 import random
-from typing import Dict, Optional, Union, Hashable, Sequence, Callable
-from monai.utils import Method, NumpyPadMode, PytorchPadMode, ensure_tuple, ensure_tuple_rep, fall_back_tuple
+from typing import Dict, Optional, Union, Hashable
 
 from medutils.medutils import load_itk, save_itk
 from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
-from monai.transforms import CropForeground, RandGaussianNoise, MapTransform, Transform, RandomizableTransform, ThreadUnsafe
-from torchvision.transforms import RandomHorizontalFlip, RandomVerticalFlip, CenterCrop, RandomAffine
-from monai.transforms.utils import (
-    allow_missing_keys_mode,
-    generate_pos_neg_label_crop_centers,
-    is_positive,
-    map_binary_to_indices,
-    weighted_patch_samples,
-)
+from scipy.ndimage.morphology import binary_dilation
+from monai.transforms import MapTransform, Transform, RandomizableTransform
 TransInOut = Dict[Hashable, Optional[Union[np.ndarray, torch.Tensor, str, int]]]
 # Note: all transforms here must inheritage Transform, Transform, or RandomTransform.
 
@@ -42,10 +33,11 @@ class RemoveTextd(MapTransform):
 class SaveDatad(MapTransform):
     """Save the padded data, so that next time we can load the data directly, to save time.
     """
-    def __init__(self, keys, pad_truncated_dir, crop_foreground=True):
+    def __init__(self, keys, pad_truncated_dir, crop_foreground=True, inputmode=None):
         super().__init__(keys, allow_missing_keys=True)
         self.pad_truncated_dir = pad_truncated_dir
         self.crop_foreground=crop_foreground
+        self.inputmode = inputmode
 
     def __call__(self, data: TransInOut) -> TransInOut:
         d = data
@@ -106,14 +98,28 @@ class LoadDatad(MapTransform):
         :func:`lung_function.modules.composed_trans.xformd_pos2score` and
         :func:`lung_function.modules.composed_trans.xformd_pos`
     """
-    def __init__(self, keys, target, crop_foreground=False):
+    def __init__(self, keys, target, crop_foreground=False, inputmode='image'):
         super().__init__(keys, allow_missing_keys=True)
         self.target = [i.lstrip() for i in target.split('-')]
         self.crop_foreground = crop_foreground
+        self.inputmode = inputmode
+
     def __call__(self, data: TransInOut) -> TransInOut:
         fpath = data['fpath']
         print(f"loading {fpath}")
         x, ori, sp = load_itk(fpath, require_ori_sp=True)  # shape order: z, y, x
+        if 'ct_masked_by_vessel' in self.inputmode:
+            vessel_mask, vessel_ori, vessel_sp = load_itk(fpath.replace('.nii.gz', '_GcVessel.nii.gz'), require_ori_sp=True) 
+            if self.inputmode[-1] in ['1', '2', '3', '4', '5', '6']:
+                dilation_factor = int(self.inputmode[-1])
+                for i in range(dilation_factor):  # dilate several times
+                    vessel_mask = binary_dilation(vessel_mask)
+            # assert np.linalg.norm(ori - vessel_ori) < 1e-6
+            assert np.linalg.norm(sp - vessel_sp) < 1e-6
+            x = x * vessel_mask
+            x[vessel_mask<=0] = -1500  # set non-vessel as -1500
+            # save_itk(fpath.replace('.nii.gz', '_GcVessel_dilated.nii.gz'), x, ori, sp)
+
         y = np.array([data[i] for i in self.target])
         # print(f"{fpath}, {y}")
         file_id = fpath.split(".nii.gz")[0].split('SSc_patient_')[-1].split('_')[0]

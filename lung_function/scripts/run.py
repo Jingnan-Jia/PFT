@@ -19,6 +19,10 @@ from medutils.medutils import count_parameters
 from mlflow import log_metric, log_metrics, log_param, log_params
 from mlflow.tracking import MlflowClient
 from monai.utils import set_determinism
+from typing import List, Sequence
+from argparse import Namespace
+import functools
+import thop
 
 from lung_function.modules import provider
 from lung_function.modules.compute_metrics import icc, metrics
@@ -27,12 +31,13 @@ from lung_function.modules.loss import get_loss
 from lung_function.modules.networks import get_net_3d
 from lung_function.modules.path import PFTPath
 from lung_function.modules.set_args import get_args
-from lung_function.modules.tool import (record_1st, record_cgpu_info, retrive_run)
+from lung_function.modules.tool import record_1st, dec_record_cgpu, retrive_run
 import sys
 sys.path.append("../modules/networks/models_pcd")
 
 args = get_args()
 global_lock = threading.Lock()
+
 
 def thread_safe(func):
     def thread_safe_fun(*args, **kwargs):
@@ -69,7 +74,18 @@ def reinit_fc(net, nb_fc0, fc1_nodes, fc2_nodes, num_classes):
 
 
 def int2str(batch_id: np.ndarray) -> np.ndarray:
-    tmp = batch_id.shape 
+    """_summary_
+
+    Args:
+        batch_id (np.ndarray): _description_
+
+    Raises:
+        Exception: _description_
+
+    Returns:
+        np.ndarray: _description_
+    """
+    tmp = batch_id.shape
     id_str_ls = []
     for id in batch_id:
         if isinstance(id, np.ndarray):
@@ -77,58 +93,70 @@ def int2str(batch_id: np.ndarray) -> np.ndarray:
         id = str(id)
         while len(id) < 7:  # the pat id should be 7 digits
             id = '0' + id
-        if len(tmp)==2:
+        if len(tmp) == 2:
             id_str_ls.append([id])
-        elif len(tmp)==1:
+        elif len(tmp) == 1:
             id_str_ls.append(id)
         else:
-            raise Exception(f"the shape of batch_id is {tmp}, but it should be 1-dim or 2-dim")
+            raise Exception(
+                f"the shape of batch_id is {tmp}, but it should be 1-dim or 2-dim")
 
     return np.array(id_str_ls)
 
 
 class Run:
-    def __init__(self, args):
+    """A class which has its dataloader and step_iteration. It is like Lighting. 
+    """
+
+    def __init__(self, args: Namespace):
         self.mypath = PFTPath(args.id, check_id_dir=False, space=args.ct_sp)
         self.device = torch.device("cuda")  # 'cuda'
         self.target = [i.lstrip() for i in args.target.split('-')]
-        self.net = get_net_3d(name=args.net, nb_cls=len(self.target), image_size=args.x_size, pretrained=args.pretrained_imgnet) # output FVC and FEV1
+        self.net = get_net_3d(name=args.net, nb_cls=len(
+            self.target), image_size=args.x_size, pretrained=args.pretrained_imgnet)  # output FVC and FEV1
         self.fold = args.fold
+        self.flops_done = False
 
         print('net:', self.net)
 
+
         net_parameters = count_parameters(self.net)
-        net_parameters = str(round(net_parameters / 1000 / 1000, 2))
+        net_parameters = str(round(net_parameters / 1e6, 2))
         log_param('net_parameters_M', net_parameters)
 
-        self.data_dt = all_loaders(self.mypath.data_dir, self.mypath.label_fpath, args)
-
+        self.data_dt = all_loaders(
+            self.mypath.data_dir, self.mypath.label_fpath, args, nb=10)
         self.loss_fun = get_loss(args.loss)
-        self.opt = torch.optim.Adam(self.net.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-
+        self.opt = torch.optim.Adam(
+            self.net.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         self.net = self.net.to(self.device)
 
         validMAEEpoch_AllBest = 1000
         if args.pretrained_id != '0':
             if 'SSc' in args.pretrained_id:  # pretrained by ssc_pos L-Net weights
-                pretrained_id = args.pretrained_id.split('-')[self.fold]  # [852] [853] [854] [855]
+                pretrained_id = args.pretrained_id.split(
+                    '-')[self.fold]  # [852] [853] [854] [855]
                 pretrained_model_path = f"/home/jjia/data/ssc_scoring/ssc_scoring/results/models_pos/{pretrained_id}/model.pt"
                 print(f"pretrained_model_path: {pretrained_model_path}")
-                ckpt = torch.load(pretrained_model_path, map_location=self.device)
+                ckpt = torch.load(pretrained_model_path,
+                                  map_location=self.device)
                 del ckpt['ln3.weight']
                 del ckpt['ln3.bias']
-                del self.net.ln3 # remove the last layer because they do not match
+                del self.net.ln3  # remove the last layer because they do not match
 
-                self.net.load_state_dict(ckpt, strict=False)  # model_fpath need to exist
+                # model_fpath need to exist
+                self.net.load_state_dict(ckpt, strict=False)
                 self.net = reinit_fc(self.net, nb_fc0=8 * 16 * 6 * 6 * 6, fc1_nodes=1024, fc2_nodes=1024,
                                      num_classes=len(self.target))
-                self.net = self.net.to(self.device)  # move the new initialized layers to GPU
-
+                # move the new initialized layers to GPU
+                self.net = self.net.to(self.device)
                 print(f"use the pretrained model from {pretrained_model_path}")
 
             else:
-                pretrained_path = PFTPath(args.pretrained_id, check_id_dir=False, space=args.ct_sp)
-                ckpt = torch.load(pretrained_path.model_fpath, map_location=self.device)
+                pretrained_path = PFTPath(
+                    args.pretrained_id, check_id_dir=False, space=args.ct_sp)
+                ckpt = torch.load(pretrained_path.model_fpath,
+                                  map_location=self.device)
 
                 if type(ckpt) is dict and 'model' in ckpt:
                     model = ckpt['model']
@@ -137,18 +165,20 @@ class Run:
                 else:
                     model = ckpt
                 self.net.load_state_dict(model)  # model_fpath need to exist
-                self.net = self.net.to(self.device)  # move the new initialized layers to GPU
+                # move the new initialized layers to GPU
+                self.net = self.net.to(self.device)
+
 
         self.BestMetricDt = {'trainLossEpochBest': 1000,
                              # 'trainnoaugLossEpochBest': 1000,
-                            'validLossEpochBest': 1000,
-                            'testLossEpochBest': 1000,
+                             'validLossEpochBest': 1000,
+                             'testLossEpochBest': 1000,
 
-                            'trainMAEEpoch_AllBest': 1000,
+                             'trainMAEEpoch_AllBest': 1000,
                              # 'trainnoaugMAEEpoch_AllBest': 1000,
-                            'validMAEEpoch_AllBest': validMAEEpoch_AllBest,
-                            'testMAEEpoch_AllBest': 1000,
-                        }
+                             'validMAEEpoch_AllBest': validMAEEpoch_AllBest,
+                             'testMAEEpoch_AllBest': 1000,
+                             }
 
     def step(self, mode, epoch_idx, save_pred=False):
         dataloader = self.data_dt[mode]
@@ -164,42 +194,50 @@ class Run:
         t0 = time.time()
         data_idx = 0
         loss_accu = 0
-        mae_accu_ls = [0 for i in self.target]
+        mae_accu_ls = [0 for _ in self.target]
         mae_accu_all = 0
         for data in dataloader:
             data_idx += 1
             if epoch_idx < 3:  # only show first 3 epochs' data loading time
                 t1 = time.time()
                 log_metric('TLoad', t1-t0, data_idx+epoch_idx*len(dataloader))
-            if args.input_mode=='vessel':
+            if args.input_mode == 'vessel':
                 key = 'vessel'
             elif args.input_mode == 'vessel_skeleton_pcd':
                 key = 'vessel_skeleton_pcd'
                 points = data[key].data.numpy()
-                if points.shape[0] == 1: # batch size=1
+                if points.shape[0] == 1:  # batch size=1
                     points = np.concatenate([points, points])
-                    data['label'] = np.concatenate([data['label'], data['label']])
+                    data['label'] = np.concatenate(
+                        [data['label'], data['label']])
                     data['label'] = torch.tensor(data['label'])
 
-
                 points = provider.random_point_dropout(points)
-                points[:, :, 0:3] = provider.random_scale_point_cloud(points[:, :, 0:3])
-                points[:, :, 0:3] = provider.shift_point_cloud(points[:, :, 0:3])
+                points[:, :, 0:3] = provider.random_scale_point_cloud(
+                    points[:, :, 0:3])
+                points[:, :, 0:3] = provider.shift_point_cloud(
+                    points[:, :, 0:3])
                 points = torch.Tensor(points)
                 points = points.transpose(2, 1)
                 data[key] = points
-                
+            elif 'ct_masked_by_vessel' in args.input_mode:
+                key = args.input_mode
+
             else:
                 key = 'image'
             batch_x = data[key].to(self.device)
             batch_y = data['label'].to(self.device)
 
+            if not self.flops_done:  # only calculate teh macs and params once
+                macs, params = thop.profile(self.net, inputs=(batch_x, ))
+                self.flops_done = True
+                log_param('macs_G', str(round(macs/1e9, 2)))
+                log_param('net_params_M', str(round(params/1e6, 2)))
 
             with torch.cuda.amp.autocast():
                 if mode != 'train' or save_pred:  # save pred for inference
                     with torch.no_grad():
                         pred = self.net(batch_x)
-
                 else:
                     pred = self.net(batch_x)
                 if save_pred:
@@ -211,22 +249,25 @@ class Run:
 
                     batch_y_np = batch_y.cpu().detach().numpy()  # shape (N, out_nb)
                     pred_np = pred.cpu().detach().numpy()  # shape (N, out_nb)
-
-
                     # batch_pat_id = np.expand_dims(batch_pat_id, axis=-1)  # change the shape from (N,) to (N, 1)
 
-                    if args.input_mode == 'vessel_skeleton_pcd' and len(batch_pat_id)==1:  # shape (1,1)
-                        batch_pat_id = np.array([[int(batch_pat_id[0])], [int(batch_pat_id[0])]])
+                    # shape (1,1)
+                    if args.input_mode == 'vessel_skeleton_pcd' and len(batch_pat_id) == 1:
+                        batch_pat_id = np.array(
+                            [[int(batch_pat_id[0])], [int(batch_pat_id[0])]])
                         batch_pat_id = torch.tensor(batch_pat_id)
 
                     saved_label = np.hstack((batch_pat_id, batch_y_np))
                     saved_pred = np.hstack((batch_pat_id, pred_np))
-                    medutils.appendrows_to(self.mypath.save_label_fpath(mode), saved_label, head=head)
-                    medutils.appendrows_to(self.mypath.save_pred_fpath(mode), saved_pred, head=head)
+                    medutils.appendrows_to(self.mypath.save_label_fpath(
+                        mode), saved_label, head=head)
+                    medutils.appendrows_to(
+                        self.mypath.save_pred_fpath(mode), saved_pred, head=head)
 
                 loss = self.loss_fun(pred, batch_y)
                 with torch.no_grad():
-                    mae_ls = [loss_fun_mae(pred[:, i], batch_y[:, i]).item() for i in range(len(self.target))]
+                    mae_ls = [loss_fun_mae(pred[:, i], batch_y[:, i]).item()
+                              for i in range(len(self.target))]
                     mae_all = loss_fun_mae(pred, batch_y).item()
 
             if mode == 'train' and save_pred is not True:  # update gradients only when training
@@ -249,37 +290,45 @@ class Run:
             # print('label:', batch_y.clone().detach().cpu().numpy())
             if epoch_idx < 3:
                 t2 = time.time()
-                log_metric('TUpdateWBatch', t2-t1, data_idx+epoch_idx*len(dataloader))
+                log_metric('TUpdateWBatch', t2-t1, data_idx +
+                           epoch_idx*len(dataloader))
                 t0 = t2  # reset the t0
         log_metric(mode+'LossEpoch', loss_accu/len(dataloader), epoch_idx)
         log_metric(mode+'MAEEpoch_All', mae_accu_all/len(dataloader), epoch_idx)
-        No = [log_metric(mode + 'MAEEpoch_' + t, i / len(dataloader), epoch_idx) for t, i in zip(self.target, mae_accu_ls)]
+        for t, i in zip(self.target, mae_accu_ls):
+            log_metric(mode + 'MAEEpoch_' + t, i / len(dataloader), epoch_idx)              
 
-        self.BestMetricDt[mode + 'LossEpochBest'] = min(self.BestMetricDt[mode+'LossEpochBest'], loss_accu/len(dataloader))
+        self.BestMetricDt[mode + 'LossEpochBest'] = min(
+            self.BestMetricDt[mode+'LossEpochBest'], loss_accu/len(dataloader))
         tmp = self.BestMetricDt[mode+'MAEEpoch_AllBest']
-        self.BestMetricDt[mode + 'MAEEpoch_AllBest'] = min(self.BestMetricDt[mode+'MAEEpoch_AllBest'], mae_accu_all/len(dataloader))
+        self.BestMetricDt[mode + 'MAEEpoch_AllBest'] = min(
+            self.BestMetricDt[mode+'MAEEpoch_AllBest'], mae_accu_all/len(dataloader))
 
         log_metric(mode+'LossEpochBest', self.BestMetricDt[mode + 'LossEpochBest'], epoch_idx)
         log_metric(mode+'MAEEpoch_AllBest', self.BestMetricDt[mode + 'MAEEpoch_AllBest'], epoch_idx)
 
         if self.BestMetricDt[mode+'MAEEpoch_AllBest'] == mae_accu_all/len(dataloader):
-            [log_metric(mode + 'MAEEpoch_' + t +'Best', i / len(dataloader), epoch_idx) for t, i in zip(self.target, mae_accu_ls)]
-
+            for t, i in zip(self.target, mae_accu_ls):
+                log_metric(mode + 'MAEEpoch_' + t + 'Best', i / len(dataloader), epoch_idx)
+             
             if mode == 'valid':
-                print(f"Current mae is {self.BestMetricDt[mode+'MAEEpoch_AllBest']}, better than the previous mae: {tmp}, save model.")
+                print( f"Current mae is {self.BestMetricDt[mode+'MAEEpoch_AllBest']}, better than the previous mae: {tmp}, save model.")
                 ckpt = {'model': self.net.state_dict(),
                         'metric_name': mode+'MAEEpoch_AllBest',
                         'current_metric_value': self.BestMetricDt[mode+'MAEEpoch_AllBest']}
                 torch.save(ckpt, self.mypath.model_fpath)
 
 
-def run(args):
+def run(args: Namespace):
+    """
+    Run the whole  experiment using this args.
+    """
     myrun = Run(args)
-    infer_modes = ['train', 'valid', 'test']
+    modes = ['train', 'valid', 'test']
     if args.mode == 'infer':
-        for mode in infer_modes:
+        for mode in modes:
             myrun.step(mode,  0,  save_pred=True)
-    else: # 'train' or 'continue_train'
+    else:  # 'train' or 'continue_train'
         for i in range(args.epochs):  # 20000 epochs
             myrun.step('train', i)
             if i % args.valid_period == 0:  # run the validation
@@ -287,19 +336,18 @@ def run(args):
                 myrun.step('test',  i)
             if i == args.epochs - 1:  # load best model and do inference
                 print('start inference')
-                ckpt = torch.load(myrun.mypath.model_fpath, map_location=myrun.device)
-                if type(ckpt) is dict and 'model' in ckpt:
+                ckpt = torch.load(myrun.mypath.model_fpath,
+                                  map_location=myrun.device)
+                if isinstance(ckpt, dict) and 'model' in ckpt:
                     model = ckpt['model']
                 else:
                     model = ckpt
                 myrun.net.load_state_dict(model)  # model_fpath need to exist
                 print(f"load net from {myrun.mypath.model_fpath}")
-                for mode in infer_modes:
+                for mode in modes:
                     myrun.step(mode, i, save_pred=True)
 
-
     mypath = PFTPath(args.id, check_id_dir=False, space=args.ct_sp)
-    modes = infer_modes
     label_ls = [mypath.save_label_fpath(mode) for mode in modes]
     pred_ls = [mypath.save_pred_fpath(mode) for mode in modes]
 
@@ -308,14 +356,17 @@ def run(args):
         log_params(r_p_value)
         print('r_p_value:', r_p_value)
 
-        icc_value = icc(label_fpath, pred_fpath)
+        icc_value = icc(label_fpath, pred_fpath, ignore_1st_column=True)
         log_params(icc_value)
         print('icc:', icc_value)
 
     print('Finish all things!')
 
 
-def average_all_folds(id_ls, current_id, key='params'):
+def average_all_folds(id_ls: Sequence[int], current_id: int, experiment, key='params'):
+    """
+    Average the logs form mlflow for all folds.
+    """
     current_run = retrive_run(experiment=experiment, reload_id=current_id)
 
     all_dt = {}
@@ -334,59 +385,59 @@ def average_all_folds(id_ls, current_id, key='params'):
             if k not in current_dt:  # re-writing parameters in mlflow is not allowed
                 if k not in all_dt:
                     all_dt[k] = []
-                if type(all_dt[k]) is not list:  # this is a value, not a list (see bellow)
+                if not isinstance(all_dt[k], list):  # this is a value, not a list (see bellow)
                     continue
-
                 try:
                     all_dt[k].append(float(v))
-                except:
-                    all_dt[k] = v  # can not be converted to numbers which can not be averaged
+                except Exception:
+                    # can not be converted to numbers which can not be averaged
+                    all_dt[k] = v
 
-    all_dt = {k: statistics.mean(v) if type(v) is list else v for k, v in all_dt.items() }
+    all_dt = {k: statistics.mean(v) if isinstance(v, list) else v for k, v in all_dt.items()}
 
     return all_dt
 
-def log_metrics_all_folds_average(id_ls, id):
+
+def log_metrics_all_folds_average(id_ls: list, id: int, experiment):
     """
     Get the 4 folds metrics and parameters
     Average them
     Log average values to the parent mlflow
     """
-    # average metrics
-
-
     # average parameters
-    param_dt = average_all_folds(id_ls, id, key='params')
+    param_dt = average_all_folds(id_ls, id, experiment, key='params')
     if len(param_dt) < 100:
         log_params(param_dt)
 
     elif len(param_dt) >= 100 and len(param_dt) < 200:
-        dt_1 = {k:param_dt[k] for i, k in enumerate(param_dt) if i < 100}
-        dt_2 = {k:param_dt[k] for i, k in enumerate(param_dt) if i >= 100}
+        dt_1 = {k: param_dt[k] for i, k in enumerate(param_dt) if i < 100}
+        dt_2 = {k: param_dt[k] for i, k in enumerate(param_dt) if i >= 100}
         log_params(dt_1)
         log_params(dt_2)
     else:
-        raise Exception(f"A batch logging request can contain at most 100 params. Got {len(param_dt)} params")
-    metric_dt =average_all_folds(id_ls, id, key='metrics')
+        raise Exception(f"Our logging request can contain at most 200 params. Got {len(param_dt)} params")
+
+    # average metrics
+    metric_dt = average_all_folds(id_ls, id, experiment, key='metrics')
     log_metrics(metric_dt, 0)
 
+@dec_record_cgpu(args.outfile)
+def main():
+    SEED = 4
+    set_determinism(SEED)  # set seed for this run
 
-if __name__ == "__main__":
-    seed = 4
-    set_determinism(seed)  # set seed for this run
+    torch.manual_seed(SEED)
+    torch.cuda.manual_seed_all(SEED)
+    torch.cuda.manual_seed(SEED)
 
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.cuda.manual_seed(seed)
-
-    random.seed(seed)
-    np.random.seed(seed)
-
+    random.seed(SEED)
+    np.random.seed(SEED)
 
     mlflow.set_tracking_uri("http://nodelogin02:5000")
     experiment = mlflow.set_experiment("lung_fun_db15")
-    record_fpath = "results/record.log"
-    id = record_1st(record_fpath)  # write super parameters from set_args.py to record file.
+    RECORD_FPATH = "results/record.log"
+    # write super parameters from set_args.py to record file.
+    id = record_1st(RECORD_FPATH)
 
     # if merge 4 fold results, uncommit the following code.
     # From here ======================================================
@@ -401,42 +452,39 @@ if __name__ == "__main__":
     #     args.id = id  # do not need to pass id seperately to the latter function
 
     # to here =======================================================
-    if args.mode=='infer':  # get the id of the run
+    if args.mode == 'infer':  # get the id of the run
         client = MlflowClient()
-        run_ls = client.search_runs(experiment_ids=[experiment.experiment_id], run_view_type=3, # run_view_type=2 means the 'deleted'
+        run_ls = client.search_runs(experiment_ids=[experiment.experiment_id], run_view_type=3,  # run_view_type=2 means the 'deleted'
                                     filter_string=f"params.id LIKE '%{args.pretrained_id}%'")
         run_ = run_ls[0]
         run_id = run_.info.run_id
         with mlflow.start_run(run_id=run_id, tags={"mlflow.note.content": args.remark}):
-            args.id = args.pretrained_id
-            # import requests
-            # requests.post()
+            args.id = args.pretrained_id  # log the metrics to the pretrained_id
             run(args)
     else:
         with mlflow.start_run(run_name=str(id), tags={"mlflow.note.content": args.remark}):
             args.id = id  # do not need to pass id seperately to the latter function
 
             current_id = id
-
-            p1 = threading.Thread(target=record_cgpu_info, args=(args.outfile, ))
-            p1.start()
-
             tmp_args_dt = vars(args)
             tmp_args_dt['fold'] = 'all'
             log_params(tmp_args_dt)
 
-            id_ls = []
+            all_folds_id_ls = []
             for fold in [1, 2, 3, 4]:
-                id = record_1st(record_fpath)  # write super parameters from set_args.py to record file.
-                id_ls.append(id)
+                # write super parameters from set_args.py to record file.
+                id = record_1st(RECORD_FPATH)
+                all_folds_id_ls.append(id)
                 with mlflow.start_run(run_name=str(id) + '_fold_' + str(fold), tags={"mlflow.note.content": f"fold: {fold}"}, nested=True):
                     args.fold = fold
                     args.id = id  # do not need to pass id seperately to the latter function
                     tmp_args_dt = vars(args)
                     log_params(tmp_args_dt)
                     run(args)
+            log_metrics_all_folds_average(all_folds_id_ls, current_id, experiment)
 
-            log_metrics_all_folds_average(id_ls, current_id)
 
-            p1.do_run = False  # stop the thread
-            p1.join()
+if __name__ == "__main__":
+    main()
+
+

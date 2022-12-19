@@ -32,11 +32,14 @@ import matplotlib.pyplot as plt
 
 
 
-def icc(label_fpath, pred_fpath):
+def icc(label_fpath, pred_fpath, ignore_1st_column=False):
     icc_dict = {}
 
     label = pd.read_csv(label_fpath)
     pred = pd.read_csv(pred_fpath)
+    if ignore_1st_column:
+        pred = pred.iloc[: , 1:]
+        label = label.iloc[: , 1:]
     if 'ID' == label.columns[0]:
         del label["ID"]
     if 'ID' == pred.columns[0]:
@@ -67,6 +70,7 @@ def metrics(pred_fpath, label_fpath, ignore_1st_column=False):
     """
     ignore_1st_column: ignore the index column
     """
+    
     r_dict, p_dict = {}, {}
     df_pred = pd.read_csv(pred_fpath)
     df_label = pd.read_csv(label_fpath)
@@ -86,7 +90,7 @@ def metrics(pred_fpath, label_fpath, ignore_1st_column=False):
     # if col_nb < 10:
     fig = plt.figure(figsize=(length_fig, height_fig))  # for bland-altman plot
     fig_2 = plt.figure(figsize=(length_fig, height_fig))  # for scatter plot
-    fig_3 = plt.figure(figsize=(length_fig, height_fig))  # for scatter plot with 95% CI
+    # fig_3 = plt.figure(figsize=(length_fig, height_fig))  # for scatter plot with 95% CI
     # else:
     #     raise Exception(f"the columns number is greater than 10: {df_label.columns}")
 
@@ -112,6 +116,8 @@ def metrics(pred_fpath, label_fpath, ignore_1st_column=False):
         # bland-altman plot
         ax = fig.add_subplot(row_nb, col_nb, plot_id + 1)
         ax_2 = fig_2.add_subplot(row_nb, col_nb, plot_id + 1)
+        # ax_3 = fig_3.add_subplot(row_nb, col_nb, plot_id + 1)
+        ax_2 = sns.regplot(x=label, y=pred, color=colors[plot_id])
 
         # f, ax = plt.subplots(1, figsize=(8, 5))
         scatter_kwds = {'c': colors[plot_id], 'label': column}
@@ -126,6 +132,23 @@ def metrics(pred_fpath, label_fpath, ignore_1st_column=False):
 
         ax.set_title(column, fontsize=15)
         ax_2.set_title(column, fontsize=15)
+        
+        # plot linear regression line
+        m, b = np.polyfit(label.flatten(), pred.flatten(), 1)
+        slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(label.flatten(), pred.flatten())
+        r_dict['r_' + prefix + '_' + column] = r_value
+        p_dict['p_of_r' + prefix + '_' + column] = p_value
+
+        x_reference = np.array([np.min(label), np.max(label)])
+        print(column, 'linear regression m, b:', m, b)
+        print(column, 'linear regression m, b, r^2:', slope, intercept, r_value ** 2)
+
+        ax_2.plot(x_reference, m * x_reference + b, '--', color='gray')  # light gray
+        # ax_2.text(0.1, 0.7, '---  Regression line',
+        #           ha="left", fontsize='large', transform=ax_2.transAxes)
+        ax_2.text(0.1, 0.7, f'y = {m:.2f}x + {b:.2f}\nR = {r_value: .2f}\nR\N{SUPERSCRIPT TWO} = {r_value ** 2: .2f}',
+                  ha="left", fontsize='large', transform=ax_2.transAxes)
+
 
 
         lower_y, upper_y = ax.get_ybound()  # set these plots as the same scale for comparison
@@ -148,61 +171,62 @@ def metrics(pred_fpath, label_fpath, ignore_1st_column=False):
         print(f"std for {column} is {std}")
         print("Finish plot of ", column)
 
-    for plot_id, column in enumerate(df_label.columns):
-        label = df_label[column].to_numpy().reshape(-1, )
-        pred = df_pred[column].to_numpy().reshape(-1, )
-        ax_3 = fig_3.add_subplot(row_nb, col_nb, plot_id + 1)
-        ax_3 = sns.regplot(x=label, y=pred, color=colors[plot_id])
+    # for plot_id, column in enumerate(df_label.columns):
+    #     label = df_label[column].to_numpy().reshape(-1, )
+    #     pred = df_pred[column].to_numpy().reshape(-1, )
+    #     ax_3 = fig_3.add_subplot(row_nb, col_nb, plot_id + 1)
+    #     ax_3 = sns.regplot(x=label, y=pred, color=colors[plot_id])
 
 
-    for plot_id, column in enumerate(df_label.columns):
-        label = df_label[column].to_numpy().reshape(-1, )
-        pred = df_pred[column].to_numpy().reshape(-1, )
+    # for plot_id, column in enumerate(df_label.columns):
+    #     label = df_label[column].to_numpy().reshape(-1, )
+    #     pred = df_pred[column].to_numpy().reshape(-1, )
 
-        ax_2 = fig_2.add_subplot(row_nb, col_nb, plot_id + 1)
-        # plot linear regression line
-        m, b = np.polyfit(label, pred, 1)
-        slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(label, pred)
-        r_dict['r_' + prefix + '_' + column] = r_value
-        p_dict['p_of_r' + prefix + '_' + column] = p_value
+    #     ax_2 = fig_2.add_subplot(row_nb, col_nb, plot_id + 1)
 
-        x_reference = np.array([np.min(label), np.max(label)])
-        print(column, 'linear regression m, b:', m, b)
-        print(column, 'linear regression m, b, r^2:', slope, intercept, r_value ** 2)
+    #     # plot linear regression line
+    #     m, b = np.polyfit(label, pred, 1)
+    #     slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(label, pred)
+    #     r_dict['r_' + prefix + '_' + column] = r_value
+    #     p_dict['p_of_r' + prefix + '_' + column] = p_value
 
-        ax_2.plot(x_reference, m * x_reference + b, '--', color='gray')  # light gray
-        # ax_2.text(0.1, 0.7, '---  Regression line',
-        #           ha="left", fontsize='large', transform=ax_2.transAxes)
-        ax_2.text(0.1, 0.7, f'y = {m:.2f}x + {b:.2f}\nR = {r_value: .2f}\nR\N{SUPERSCRIPT TWO} = {r_value ** 2: .2f}',
-                  ha="left", fontsize='large', transform=ax_2.transAxes)
-    print(f"lower_y_ls: {lower_y_ls}, upper_y_ls: {upper_y_ls}")
-    lower_y, upper_y = min(lower_y_ls), max(upper_y_ls)
-    lower_x, upper_x = min(lower_x_ls), max(upper_x_ls)
+    #     x_reference = np.array([np.min(label), np.max(label)])
+    #     print(column, 'linear regression m, b:', m, b)
+    #     print(column, 'linear regression m, b, r^2:', slope, intercept, r_value ** 2)
 
-    print("lower:", lower_y, "upper:", upper_y)
-    common_y = max(abs(lower_y), abs(upper_y))
-    common_x = max(abs(lower_x), abs(upper_x))
+    #     ax_2.plot(x_reference, m * x_reference + b, '--', color='gray')  # light gray
+    #     # ax_2.text(0.1, 0.7, '---  Regression line',
+    #     #           ha="left", fontsize='large', transform=ax_2.transAxes)
+    #     ax_2.text(0.1, 0.7, f'y = {m:.2f}x + {b:.2f}\nR = {r_value: .2f}\nR\N{SUPERSCRIPT TWO} = {r_value ** 2: .2f}',
+    #               ha="left", fontsize='large', transform=ax_2.transAxes)
+    # print(f"lower_y_ls: {lower_y_ls}, upper_y_ls: {upper_y_ls}")
+    # lower_y, upper_y = min(lower_y_ls), max(upper_y_ls)
+    # lower_x, upper_x = min(lower_x_ls), max(upper_x_ls)
 
-    for i in range(row_nb * col_nb):
-        if df_label.columns[i] == 'DLCO_SB':
-            limitx = 15  # max value of FVC
-        elif df_label.columns[i] == 'TLC_He':
-            limitx = 12
-        else:
-            limitx = 7  # max value of FEV1 and DLCO_SB
-        limitx = None
+    # print("lower:", lower_y, "upper:", upper_y)
+    # common_y = max(abs(lower_y), abs(upper_y))
+    # common_x = max(abs(lower_x), abs(upper_x))
 
-        ax = fig.add_subplot(row_nb, col_nb, i + 1)
-        ax.set_xlim(0, limitx)
-        # ax.set_ylim(-common_y * 1.2, common_y * 1.2)
+    # for i in range(row_nb * col_nb):
+    #     if df_label.columns[i] == 'DLCO_SB':
+    #         limitx = 15  # max value of FVC
+    #     elif df_label.columns[i] == 'TLC_He':
+    #         limitx = 12
+    #     else:
+    #         limitx = 7  # max value of FEV1 and DLCO_SB
+    #     limitx = None
 
-        ax_2 = fig_2.add_subplot(row_nb, col_nb, i + 1)
-        ax_2.set_xlim(0, limitx)
-        ax_2.set_ylim(0, limitx)
+    #     ax = fig.add_subplot(row_nb, col_nb, i + 1)
+    #     # ax.set_xlim(0, limitx)
+    #     # # ax.set_ylim(-common_y * 1.2, common_y * 1.2)
 
-        ax_3 = fig_3.add_subplot(row_nb, col_nb, i + 1)
-        ax_3.set_xlim(0, limitx)
-        ax_3.set_ylim(0, limitx)
+    #     ax_2 = fig_2.add_subplot(row_nb, col_nb, i + 1)
+    #     # ax_2.set_xlim(0, limitx)
+    #     # ax_2.set_ylim(0, limitx)
+
+    #     ax_3 = fig_3.add_subplot(row_nb, col_nb, i + 1)
+    #     # ax_3.set_xlim(0, limitx)
+    #     # ax_3.set_ylim(0, limitx)
 
     # f.suptitle(prefix.capitalize() + " Bland-Altman Plot", fontsize=26)
     f.tight_layout()
@@ -214,9 +238,9 @@ def metrics(pred_fpath, label_fpath, ignore_1st_column=False):
     f_2.savefig(basename + '/' + prefix + '_scatter.png')
     plt.close(f_2)
 
-    fig_3.tight_layout()
-    fig_3.savefig(basename + '/' + prefix + '_scatter_ci.png')
-    plt.close(fig_3)
+    # fig_3.tight_layout()
+    # fig_3.savefig(basename + '/' + prefix + '_scatter_ci.png')
+    # plt.close(fig_3)
 
     all_dt = {**r_dict, **p_dict}
     return all_dt

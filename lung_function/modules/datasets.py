@@ -25,6 +25,9 @@ import monai
 from sklearn.model_selection import KFold
 from lung_function.modules.trans import LoadDatad, SaveDatad, RandomCropForegroundd, RemoveTextd, LoadPointCloud
 import os
+import json
+import itertools
+
 
 PAD_DONE = False
 
@@ -52,8 +55,11 @@ def xformd(mode, z_size: int = 192, y_size: int = 256, x_size: int = 256, pad_tr
         if inputmode=='vessel':
             keys = ('vessel', )
             min_value, max_value = 0, 1
-        elif inputmode=='image':
+        elif inputmode == 'image':
             keys = ('image', )
+            min_value, max_value = -1500, 1500
+        elif 'ct_masked_by_vessel' in inputmode:
+            keys = (inputmode, )
             min_value, max_value = -1500, 1500
         else:
             raise Exception(f"wrong input mode: {inputmode}")
@@ -64,13 +70,13 @@ def xformd(mode, z_size: int = 192, y_size: int = 256, x_size: int = 256, pad_tr
             PAD_DONE = False
             if not os.path.isdir(pad_truncated_dir):
                 os.makedirs(pad_truncated_dir)
-            xforms = [LoadDatad(keys=keys[0], target=target, crop_foreground=crop_foreground), AddChanneld(keys=keys)]
+            xforms = [LoadDatad(keys=keys[0], target=target, crop_foreground=crop_foreground, inputmode=inputmode), AddChanneld(keys=keys)]
             xforms.append(SpatialPadd(keys=keys[0], spatial_size=post_pad_size, mode='constant', constant_values=min_value))
             if crop_foreground:
                 xforms.append(SpatialPadd(keys=keys[1], spatial_size=post_pad_size, mode='constant', constant_values= 0))
             xforms.append(ScaleIntensityRanged(keys=keys[0], a_min=min_value, a_max=max_value, b_min=-1, b_max=1, clip=True))
-            xforms.append(SaveDatad(keys=keys[0], pad_truncated_dir=pad_truncated_dir, crop_foreground=crop_foreground))
-        else:
+            xforms.append(SaveDatad(keys=keys[0], pad_truncated_dir=pad_truncated_dir, crop_foreground=crop_foreground, inputmode=inputmode))
+        else:  # TODO: not implemented yet
             xforms = [LoadDatad(target=target, crop_foreground=crop_foreground), AddChanneld(keys=keys)]
         # xforms.append()
         if mode == 'train':
@@ -107,8 +113,8 @@ def clean_data(pft_df, data_dir):
         scans = glob.glob(data_dir + "/SSc_patient_???????.mha")  # get availabel files
 
 
-    availabel_id_set = set([Path(id).stem[:19] for id in scans if not (('0422335' in id) 
-    or ('0456204' in id) or ('6216732' in id) or ('6318989' in id))])  # exclude '422335' which has bad image quality
+    availabel_id_set = set([Path(id).stem[:19] for id in scans if not (('0422335' in id))])  # exclude '422335' which has bad image quality
+    # 0456204 had a different file name, 6216723 and 6318939 are typo, I need to add them back !!!
 
     pft_df.drop(pft_df.loc[~pft_df['subjectID'].isin(availabel_id_set)].index, inplace=True)
 
@@ -120,9 +126,10 @@ def clean_data(pft_df, data_dir):
 
     return pft_df
 
-def pat_fromo_csv(mode: str, data) -> np.ndarray:
+def pat_fromo_csv(mode: str, data, fold=1) -> np.ndarray:
     tmp_ls = []
-    df = pd.read_csv(f"/data1/jjia/lung_function/lung_function/scripts/results/experiments/914/{mode}_label.csv")
+    ex_fold_dt = {1:'905', 2:'914', 3:'919', 4:'924'}
+    df = pd.read_csv(f"/data1/jjia/lung_function/lung_function/scripts/results/experiments/{ex_fold_dt[fold]}/{mode}_label.csv")
     pat_ls = [patid for patid in df['pat_id']]
     for d in data:
         if int(d['subjectID'].split('_')[-1]) in pat_ls:
@@ -130,16 +137,40 @@ def pat_fromo_csv(mode: str, data) -> np.ndarray:
     tmp_np = np.array(tmp_ls)
     return tmp_np
     
+
+def pat_from_json(data, fold=1) -> np.ndarray:
+    with open('data_split.json', "r") as f:
+        data_split = json.load(f)
+
+    valid = data_split[f'valid_fold{fold}']
+    test = data_split[f'test']
+    train = list(itertools.chain([data_split[f'valid_fold{i}'] for i in [1,2,3,4] if i != fold]))
+
+    def avail_data(pat_ls, data) -> np.ndarray:
+        tmp_ls = []
+        for d in data:
+            if int(d['subjectID'].split('_')[-1]) in pat_ls:
+                tmp_ls.append(d)
+        return np.array(tmp_ls)
+
+    train = avail_data(train, data)
+    valid = avail_data(valid, data)
+    test = avail_data(test, data)
+    return train, valid, test
+
+
+
 def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'test'), nb=None):
 
-    pad_truncated_dir = f"/home/jjia/data/dataset/lung_function/iso{args.ct_sp}/z{args.z_size}x{args.x_size}y{args.y_size}_pad_ratio{str(args.pad_ratio)}"
+    if args.ct_sp in ('1.0', '1.5'):
+        pad_truncated_dir = f"/home/jjia/data/dataset/lung_function/iso{args.ct_sp}/z{args.z_size}x{args.x_size}y{args.y_size}_pad_ratio{str(args.pad_ratio)}"
+    else:
+        pad_truncated_dir = f"/home/jjia/data/dataset/lung_function/ori_resolution/z{args.z_size}x{args.x_size}y{args.y_size}_pad_ratio{str(args.pad_ratio)}"
+
 
     label_excel = pd.read_excel(label_fpath, engine='openpyxl')
     label_excel = label_excel.sort_values(by=['subjectID'])
-
     label_excel = clean_data(label_excel, data_dir)
-
-
 
 
     # 3 labels for one level
@@ -153,22 +184,24 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
                     d['fpath'] = data_dir + '/' + d['subjectID'] + '_GcVessel.nii.gz'
                 elif args.input_mode=="ct":
                     d['fpath'] = data_dir + '/' + d['subjectID'] + '.nii.gz'
+                elif "ct_masked_by_vessel" in args.input_mode:  # maybe ct_masked_by_vessel_lilated1
+                    d['fpath'] = data_dir + '/' + d['subjectID'] + '.nii.gz'
                 
                 else:
                     raise Exception(f"wrong input mode: {args.input_mode}")
-            else:
+            else:  # TODO: not implemented yet
                 if args.input_mode=="vessel":
                     d['fpath'] = pad_truncated_dir + '/' + d['subjectID'] + '_GcVessel.nii.gz'
                 elif args.input_mode=="ct":
+                    d['fpath'] = pad_truncated_dir + '/' + d['subjectID'] + '.nii.gz'
+                elif "ct_masked_by_vessel" in args.input_mode:
                     d['fpath'] = pad_truncated_dir + '/' + d['subjectID'] + '.nii.gz'
                 else:
                     raise Exception(f"wrong input mode: {args.input_mode}")
 
     # random.shuffle(data)  # Four fold are not right !!!
     if args.test_pat == 'random_as_ori':
-        tr_data = pat_fromo_csv('train', data)
-        vd_data = pat_fromo_csv('valid', data)
-        ts_data = pat_fromo_csv('test', data)
+        vd_data, vd_data, ts_data = pat_from_json(data, args.fold)
     else:
         kf = KFold(n_splits=args.total_folds, shuffle=True, random_state=args.kfold_seed)  # for future reproduction
 
