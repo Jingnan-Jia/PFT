@@ -29,39 +29,48 @@ def square_distance(src, dst):
          = sum(src**2,dim=-1)+sum(dst**2,dim=-1)-2*src^T*dst
 
     Input:
-        src: source points, [B, N, C]
-        dst: target points, [B, M, C]
+        src: source points, [B, N, d]
+        dst: target points, [B, M, d]
     Output:
         dist: per-point square distance, [B, N, M]
     """
     B, N, _ = src.shape
     _, M, _ = dst.shape
+
+    max_pos = max(torch.max(src), torch.max(dst))
+    src = src/max_pos  # I scale it to avoid 'CUDA OVERFLOW ERROR' 
+    dst = dst/max_pos
+
     dist = -2 * torch.matmul(src, dst.permute(0, 2, 1))
     dist += torch.sum(src ** 2, -1).view(B, N, 1)
     dist += torch.sum(dst ** 2, -1).view(B, 1, M)
+
+    dist = dist * max_pos
+
     return dist
 
 
 def index_points(points, idx):
     """
-
+    I have to add a assert check to ensure the idx does not exceed the limitation of points!
     Input:
         points: input points data, [B, N, C]
-        idx: sample index data, [B, S]
+        idx: sample index data, [B, S, [S1]]
     Return:
         new_points:, indexed points data, [B, S, C]
     """
     device = points.device
-    B = points.shape[0]
-    view_shape = list(idx.shape)
-    view_shape[1:] = [1] * (len(view_shape) - 1)
-    repeat_shape = list(idx.shape)
-    repeat_shape[0] = 1
-    batch_indices = torch.arange(B, dtype=torch.long).to(device).view(view_shape).repeat(repeat_shape)
+    B = points.shape[0]  #  batch
+    view_shape = list(idx.shape)   #  [B, S, [S1]]
+    view_shape[1:] = [1] * (len(view_shape) - 1)  # [B, 1]
+    repeat_shape = list(idx.shape)     #  [B, S, [S1]]
+    repeat_shape[0] = 1     #  [1, S, [S1]]
+    batch_indices = torch.arange(B, dtype=torch.long).to(device).view(view_shape).repeat(repeat_shape)   #  [B, S, [S1]]
     # points = points.to('cpu')
     # batch_indices = batch_indices.to('cpu')
     # idx = idx.to('cpu')
-    new_points = points[batch_indices, idx, :]
+    # idx[idx>=points.shape[1]] = points.shape[1]-1  # test if the works
+    new_points = points[batch_indices, idx, :]  # [B, S, [S1], C]
     # new_points = new_points.to(device)
     return new_points
 
@@ -69,7 +78,7 @@ def index_points(points, idx):
 def farthest_point_sample(xyz, npoint):
     """
     Input:
-        xyz: pointcloud data, [B, N, 3]
+        xyz: pointcloud data, [B, N, d=3]
         npoint: number of samples
     Return:
         centroids: sampled pointcloud index, [B, npoint]
@@ -119,11 +128,13 @@ def farthest_point_sample_with_r(xyzr, npoint):
 
 def query_ball_point(radius, nsample, xyz, new_xyz):
     """
+    Ball query finds all points that are within a radius to the query point (an upper limit of nsample is set in implementation)
+    Note: I have to add a assert check to ensure the idx does not exceed the limitation of points!
     Input:
         radius: local region radius
-        nsample: max sample number in local region
-        xyz: all points, [B, N, 3]
-        new_xyz: query points, [B, S, 3]
+        nsample: **max** sample number in local region
+        xyz: all points, [B, N, d=3]
+        new_xyz: query points, [B, S, d=3]
     Return:
         group_idx: grouped points index, [B, S, nsample]
     """
@@ -131,10 +142,10 @@ def query_ball_point(radius, nsample, xyz, new_xyz):
     B, N, C = xyz.shape
     _, S, _ = new_xyz.shape
 
-    group_idx = torch.arange(N, dtype=torch.long).to(device).view(1, 1, N).repeat([B, S, 1])
+    group_idx = torch.arange(N, dtype=torch.long).to(device).view(1, 1, N).repeat([B, S, 1])  # shape [B, S, N] ?
 
-    sqrdists = square_distance(new_xyz, xyz)
-    group_idx[sqrdists > radius ** 2] = N
+    sqrdists = square_distance(new_xyz, xyz)  #  [B, S, N]
+    group_idx[sqrdists > radius ** 2] = N  # distances greater than r^2 are 
     group_idx = group_idx.sort(dim=-1)[0][:, :, :nsample]
 
     # sort_dis,group_idx=sqrdists.sort(dim=-1)
@@ -150,25 +161,29 @@ def query_ball_point(radius, nsample, xyz, new_xyz):
 def sample_and_group(npoint, radius, nsample, xyz, points, returnfps=False):
     """
     Input:
-        npoint:
-        radius:
-        nsample:
-        xyz: input points position data, [B, N, 3]
-        points: input points data, [B, N, D]
+        npoint: number of total points after `farthest_point_sample`, used as the centroid for grouping
+        radius: radius value to generate new group of points
+        nsample: number of point for each group after sampling
+        xyz: input points position data, [B, N, d=3]
+        points: input points data, [B, N, C], C is the feature number
     Return:
-        new_xyz: sampled points position data, [B, npoint, nsample, 3]
-        new_points: sampled points data, [B, npoint, nsample, 3+D]
+        new_xyz: sampled points position data, [B, npoint, nsample, d=3]
+        new_points: sampled points data, [B, npoint, nsample, d+C]
     """
-    B, N, C = xyz.shape 
+    B, N, d = xyz.shape
     S = npoint
-    fps_idx = farthest_point_sample(xyz, npoint) # [B, npoint, C]
-    new_xyz = index_points(xyz, fps_idx)
-    idx = query_ball_point(radius, nsample, xyz, new_xyz)
-    grouped_xyz = index_points(xyz, idx) # [B, npoint, nsample, C]
-    grouped_xyz_norm = grouped_xyz - new_xyz.view(B, S, 1, C)
+    # Sampling
+    fps_idx = farthest_point_sample(xyz, npoint) # index used to get value from xyz, [B, npoint]
+    new_xyz = index_points(xyz, fps_idx)  # get new xyz from xyz using the index, [B, npoint, d=3]
+
+    # Grouping
+    # Ball query finds all points that are within a radius to the query point (an upper limit of nsample is set in implementation)
+    idx = query_ball_point(radius, nsample, xyz, new_xyz) # index used to get value from xyz, [B, npoint, nsample]
+    grouped_xyz = index_points(xyz, idx) # [B, npoint, nsample, d]
+    grouped_xyz_norm = grouped_xyz - new_xyz.view(B, S, 1, d)  # get the relative coordinates
 
     if points is not None:
-        grouped_points = index_points(points, idx)
+        grouped_points = index_points(points, idx) # [B, npoint, nsample, C]
         new_points = torch.cat([grouped_xyz_norm, grouped_points], dim=-1) # [B, npoint, nsample, C+D]
     else:
         new_points = grouped_xyz_norm
@@ -181,18 +196,18 @@ def sample_and_group(npoint, radius, nsample, xyz, points, returnfps=False):
 def sample_and_group_all(xyz, points):
     """
     Input:
-        xyz: input points position data, [B, N, 3]
-        points: input points data, [B, N, D]
+        xyz: input points position data, [B, N, d], d=3 for 3-dim points
+        points: input points data, [B, N, C], C is the feature number
     Return:
-        new_xyz: sampled points position data, [B, 1, 3]
-        new_points: sampled points data, [B, 1, N, 3+D]
+        new_xyz: sampled points position data, [B, 1, d]
+        new_points: sampled points data, [B, 1, N, d+C]
     """
     device = xyz.device
-    B, N, C = xyz.shape
-    new_xyz = torch.zeros(B, 1, C).to(device)
-    grouped_xyz = xyz.view(B, 1, N, C)
+    B, N, d = xyz.shape  # batch, number of points, d-min
+    new_xyz = torch.zeros(B, 1, d).to(device)  # merge all points to one point, initialize the resulting coordinates to 0,0,0 for each point of each batch
+    grouped_xyz = xyz.view(B, 1, N, d)
     if points is not None:
-        new_points = torch.cat([grouped_xyz, points.view(B, 1, N, -1)], dim=-1)
+        new_points = torch.cat([grouped_xyz, points.view(B, 1, N, -1)], dim=-1)  # convert poinst from [B,N,C] to [B,1,N,C+d]
     else:
         new_points = grouped_xyz
     return new_xyz, new_points
@@ -228,11 +243,13 @@ class PointNetSetAbstraction(nn.Module):
 
         if self.group_all:  # group all input (grou number = 1), ususally used in the final layer of feature extraction before fully connected layer
             new_xyz, new_points = sample_and_group_all(xyz, points)
+            # new_xyz: sampled points position data, [B, npoint=1, d]
+            # new_points: sampled points data, [B, npoint=1, nsample=N, C+d]
         else:
-            new_xyz, new_points = sample_and_group(self.npoint, self.radius, self.nsample, xyz, points)  # sample and group
-        # new_xyz: sampled points position data, [B, npoint, d]
-        # new_points: sampled points data, [B, npoint, nsample, C+d]
-        new_points = new_points.permute(0, 3, 2, 1) # [B, C+D, nsample,npoint]
+            new_xyz, new_points = sample_and_group(self.npoint, self.radius, self.nsample, xyz, points)  # sample and group, 
+            # new_xyz: sampled points position data, [B, npoint, d]
+            # new_points: sampled points data, [B, npoint, nsample, C+d]
+        new_points = new_points.permute(0, 3, 2, 1) # to [B, C+D, nsample,npoint], if 'sample_and_group_all', npoint=1
         for i, conv in enumerate(self.mlp_convs):
             bn = self.mlp_bns[i]
             new_points =  F.relu(bn(conv(new_points)))
