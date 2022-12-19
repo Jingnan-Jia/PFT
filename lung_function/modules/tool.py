@@ -17,6 +17,7 @@ import pandas as pd
 import torch
 from filelock import FileLock
 from torch.utils.data import WeightedRandomSampler
+import functools
 
 import threading
 from pathlib import Path
@@ -58,15 +59,7 @@ def retrive_run(experiment, reload_id):
                                 filter_string=f"params.id LIKE '%{reload_id}%'")
     if len(run_ls) == 1:
         run = run_ls[0]
-        # print(run)
     elif len(run_ls) > 1:
-        # flag = False
-        # for r in run_ls:
-        #     if 'id' in r.data.params:
-        #         run = r
-        #         flag = True
-        #
-        # if flag is False:
         raise Exception(
             f"There are several runs which match the patterns params.id LIKE '%{reload_id}%':")
     else:
@@ -376,6 +369,29 @@ def record_gpu_info(outfile) -> Tuple:
 #         print(f'log_metrics_for_cgpu loged {size} steps, which cost {time.time() - t0} seconds.')
 #
 
+
+def dec_record_cgpu(output_file: str) -> None:
+    """A decorator for deciding whether to record CGPU metrics or not. 
+
+    Args:
+        output_file (str): the format shold be 'slurm-[jobid][_gpuid_].out'.
+    """
+    def decorate(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            p1 = threading.Thread(target=record_cgpu_info, args=(output_file, ))
+            p1.start()
+
+            result = func(*args, **kwargs)
+
+            p1.do_run = False  # stop the thread
+            p1.join()
+
+            return result
+        return wrapper
+    return decorate
+
+
 def record_cgpu_info(outfile) -> Tuple:
     """Record GPU information to `outfile`.
 
@@ -394,6 +410,8 @@ def record_cgpu_info(outfile) -> Tuple:
         :func:`ssc_scoring.run.gpu_info` and :func:`ssc_scoring.run_pos.gpu_info`
 
     """
+    print(f"start to record GPU information to {outfile}")
+
     t = threading.currentThread()
     t.do_run = True
 
