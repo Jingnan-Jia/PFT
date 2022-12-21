@@ -326,7 +326,7 @@ def run(args: Namespace):
     myrun = Run(args)
     modes = ['train', 'valid', 'test']
     if args.mode == 'infer':
-        for mode in modes:
+        for mode in ['valid', 'test']:
             myrun.step(mode,  0,  save_pred=True)
     else:  # 'train' or 'continue_train'
         for i in range(args.epochs):  # 20000 epochs
