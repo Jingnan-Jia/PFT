@@ -5,7 +5,8 @@ lung_function/results_archive/
 lung_function/modules/__pycache__/
 *.pyc
 .neptune/
-.idea
+.idea/
+.vscode/
 *.db
 *.csv
 *.mha
