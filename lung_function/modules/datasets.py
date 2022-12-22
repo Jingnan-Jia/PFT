@@ -23,7 +23,7 @@ import pandas as pd
 from torch.utils.data import Dataset
 import monai
 from sklearn.model_selection import KFold
-from lung_function.modules.trans import LoadDatad, SaveDatad, RandomCropForegroundd, RemoveTextd, LoadPointCloud
+from lung_function.modules.trans import LoadDatad, SaveDatad, RandomCropForegroundd, RemoveTextd, LoadPointCloud, SampleShuffled
 import os
 import json
 import itertools
@@ -46,7 +46,8 @@ def xformd(mode, z_size: int = 192, y_size: int = 256, x_size: int = 256, pad_tr
     post_pad_size = [int(i * pad_ratio) for i in [z_size, y_size, x_size]]
     if inputmode=='vessel_skeleton_pcd':
         keys = ('vessel_skeleton_pcd', )
-        xforms = [LoadPointCloud(keys=keys, target=target, PNB=PNB),
+        xforms = [LoadPointCloud(keys=keys, target=target),
+                SampleShuffled(keys=keys, PNB=PNB, total_shuffle=True, sub_shuffle=True),
                 CastToTyped(keys = keys, dtype=np.float32),
                 ToTensord(keys = keys),
                 RemoveTextd(keys='fpath')]
@@ -139,17 +140,21 @@ def pat_fromo_csv(mode: str, data, fold=1) -> np.ndarray:
     
 
 def pat_from_json(data, fold=1) -> np.ndarray:
-    with open('data_split.json', "r") as f:
+    with open('/home/jjia/data/lung_function/lung_function/modules/data_split.json', "r") as f:
         data_split = json.load(f)
 
     valid = data_split[f'valid_fold{fold}']
     test = data_split[f'test']
-    train = list(itertools.chain([data_split[f'valid_fold{i}'] for i in [1,2,3,4] if i != fold]))
+    # train = []
+    train = list(itertools.chain(*[data_split[f'valid_fold{i}'] for i in [1,2,3,4] if i != fold]))
+    # for i in tmp_ls:
+    #     train.extend(i)
 
     def avail_data(pat_ls, data) -> np.ndarray:
         tmp_ls = []
         for d in data:
-            if int(d['subjectID'].split('_')[-1]) in pat_ls:
+            tmp_id = d['subjectID'].split('_')[-1]
+            if tmp_id in pat_ls:
                 tmp_ls.append(d)
         return np.array(tmp_ls)
 
@@ -201,7 +206,7 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
 
     # random.shuffle(data)  # Four fold are not right !!!
     if args.test_pat == 'random_as_ori':
-        vd_data, vd_data, ts_data = pat_from_json(data, args.fold)
+        tr_data, vd_data, ts_data = pat_from_json(data, args.fold)
     else:
         kf = KFold(n_splits=args.total_folds, shuffle=True, random_state=args.kfold_seed)  # for future reproduction
 

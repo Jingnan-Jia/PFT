@@ -125,7 +125,7 @@ class Run:
         log_param('net_parameters_M', net_parameters)
 
         self.data_dt = all_loaders(
-            self.mypath.data_dir, self.mypath.label_fpath, args, nb=10)
+            self.mypath.data_dir, self.mypath.label_fpath, args)
         self.loss_fun = get_loss(args.loss)
         self.opt = torch.optim.Adam(
             self.net.parameters(), lr=args.lr, weight_decay=args.weight_decay)

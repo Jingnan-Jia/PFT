@@ -23,7 +23,7 @@ def get_args():
     parser.add_argument('--net', choices=('vgg11_3d','vit3', 'vgg16_3d','vgg19_3d', 'r3d_resnet', 'cnn3fc1', 'cnn4fc2',
                                           'cnn5fc2', 'cnn6fc2', 'cnn2fc1', 'cnn3fc2', 'r3d_18', 'slow_r50',
                                           'slowfast_r50', 'x3d_xs', 'x3d_s', 'x3d_m', 'x3d_l', 'pointnet_reg', 'pointnet2_reg'),# 'r2plus1d_18' out of memory
-                        help='network name', type=str, default='pointnet2_reg')
+                        help='network name', type=str, default='pointnet_reg')
     parser.add_argument('--fc2_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
                         default=1024)
     parser.add_argument('--fc1_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
@@ -35,12 +35,12 @@ def get_args():
     parser.add_argument('--loss', choices=('mse', 'mae', 'smooth_mae', 'mse+mae', 'msehigher'), help='mode', type=str,
                         default='mse')
     parser.add_argument('--pretrained', choices=(1, 0), help='pretrained or not', type=int, default=0)
-    parser.add_argument('--epochs', help='total epochs', type=int, default=1)
+    parser.add_argument('--epochs', help='total epochs', type=int, default=500)
     parser.add_argument('--weight_decay', help='L2 regularization', type=float,
                         default=0.0001)  # must be a float number !
     parser.add_argument('--lr', help='learning rate', type=float, default=0.0001)
-    parser.add_argument('--PNB', help='points number for each image', type=int, default=140000)
-    parser.add_argument('--batch_size', help='batch_size', type=int, default=1)
+    parser.add_argument('--PNB', help='points number for each image', type=int, default=7000)
+    parser.add_argument('--batch_size', help='batch_size', type=int, default=20)
     parser.add_argument('--ct_sp', help='space', type=str, choices=('ori', '1.0', '1.5'), default='ori')
     parser.add_argument('--kfold_seed', help='kfold_seed', type=int, default=711)
     parser.add_argument('--test_pat', help='testing patients', choices=('zhiwei77', 'random', 'random_as_ori'), type=str, default='random_as_ori')
