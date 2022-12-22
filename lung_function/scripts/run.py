@@ -318,7 +318,7 @@ class Run:
                         'current_metric_value': self.BestMetricDt[mode+'MAEEpoch_AllBest']}
                 torch.save(ckpt, self.mypath.model_fpath)
 
-
+@dec_record_cgpu(args.outfile)
 def run(args: Namespace):
     """
     Run the whole  experiment using this args.
@@ -421,7 +421,6 @@ def log_metrics_all_folds_average(id_ls: list, id: int, experiment):
     metric_dt = average_all_folds(id_ls, id, experiment, key='metrics')
     log_metrics(metric_dt, 0)
 
-@dec_record_cgpu(args.outfile)
 def main():
     SEED = 4
     set_determinism(SEED)  # set seed for this run
