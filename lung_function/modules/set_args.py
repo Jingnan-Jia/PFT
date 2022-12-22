@@ -17,7 +17,7 @@ def get_args():
 
     # Common args with set_args.py
     parser.add_argument('--mode', choices=('train', 'infer', 'continue_train'), help='mode', type=str, default='train')
-    parser.add_argument('--pretrained_id', help='id used for inference, or continue_train', type=str, default='0') #SSc-852-853-854-855
+    parser.add_argument('--pretrained_id', help='id used for inference, or continue_train', type=str, default="1504-1505-1510-1515") #SSc-852-853-854-855
     # parser.add_argument('--reload_jobid', help='jobid used for inference, or continue_train', type=int, default=0)
     parser.add_argument('--pretrained_imgnet', help='if pretrained from imagenet', type=boolean_string, default='False')
     parser.add_argument('--net', choices=('vgg11_3d','vit3', 'vgg16_3d','vgg19_3d', 'r3d_resnet', 'cnn3fc1', 'cnn4fc2',
@@ -39,14 +39,18 @@ def get_args():
     parser.add_argument('--weight_decay', help='L2 regularization', type=float,
                         default=0.0001)  # must be a float number !
     parser.add_argument('--lr', help='learning rate', type=float, default=0.0001)
+
+    # data 
     parser.add_argument('--PNB', help='points number for each image', type=int, default=7000)
+    parser.add_argument('--sub_shuffle', help='if shuffle the subimage after sampling using PNB', type=boolean_string, default=True)
+    parser.add_argument('--total_shuffle', help='if shuffle the total points of the whole image', type=boolean_string, default=True)
+    parser.add_argument('--position_center_norm', help='if use the relative coordinates: center point is 0,0,0', type=boolean_string, default=False)
     parser.add_argument('--batch_size', help='batch_size', type=int, default=20)
     parser.add_argument('--ct_sp', help='space', type=str, choices=('ori', '1.0', '1.5'), default='ori')
     parser.add_argument('--kfold_seed', help='kfold_seed', type=int, default=711)
     parser.add_argument('--test_pat', help='testing patients', choices=('zhiwei77', 'random', 'random_as_ori'), type=str, default='random_as_ori')
     parser.add_argument('--input_mode', help='what to input', choices=('ct', 'vessel', 'ct_masked_by_vessel', 'vessel_skeleton_pcd', 'ct_masked_by_vessel_dilated1',
     'ct_masked_by_vessel_dilated2','ct_masked_by_vessel_dilated3','ct_masked_by_vessel_dilated4'), type=str, default='vessel_skeleton_pcd')
-
     parser.add_argument('--target', help='target prediction', type=str,
                         default='FVC-DLCO_SB-FEV1-TLC_He')  # FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight--DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred
 

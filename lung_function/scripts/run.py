@@ -23,6 +23,8 @@ from typing import List, Sequence
 from argparse import Namespace
 import functools
 import thop
+import os
+
 
 from lung_function.modules import provider
 from lung_function.modules.compute_metrics import icc, metrics
@@ -160,11 +162,12 @@ class Run:
 
                 if type(ckpt) is dict and 'model' in ckpt:
                     model = ckpt['model']
-                    if 'validMAEEpoch_AllBest' in ckpt:
-                        validMAEEpoch_AllBest = ckpt['validMAEEpoch_AllBest']
+                    if  'metric_name' in ckpt:
+                        if 'validMAEEpoch_AllBest' == ckpt['metric_name']:
+                            validMAEEpoch_AllBest = ckpt['current_metric_value']
                 else:
                     model = ckpt
-                self.net.load_state_dict(model)  # model_fpath need to exist
+                self.net.load_state_dict(model,strict=False)  # model_fpath need to exist
                 # move the new initialized layers to GPU
                 self.net = self.net.to(self.device)
 
@@ -336,14 +339,19 @@ def run(args: Namespace):
                 myrun.step('test',  i)
             if i == args.epochs - 1:  # load best model and do inference
                 print('start inference')
-                ckpt = torch.load(myrun.mypath.model_fpath,
-                                  map_location=myrun.device)
-                if isinstance(ckpt, dict) and 'model' in ckpt:
-                    model = ckpt['model']
+                if os.path.exists(myrun.mypath.model_fpath):
+                    ckpt = torch.load(myrun.mypath.model_fpath,
+                                    map_location=myrun.device)
+                    if isinstance(ckpt, dict) and 'model' in ckpt:
+                        model = ckpt['model']
+                    else:
+                        model = ckpt
+                    myrun.net.load_state_dict(model)  # model_fpath need to exist
+                    print(f"load net from {myrun.mypath.model_fpath}")
                 else:
-                    model = ckpt
-                myrun.net.load_state_dict(model)  # model_fpath need to exist
-                print(f"load net from {myrun.mypath.model_fpath}")
+                    print(f"no model found at {myrun.mypath.model_fpath}, let me save the current model to this lace")
+                    ckpt = {'model': myrun.net.state_dict()}
+                    torch.save(ckpt, myrun.mypath.model_fpath)
                 for mode in modes:
                     myrun.step(mode, i, save_pred=True)
 
@@ -469,15 +477,21 @@ def main():
             tmp_args_dt['fold'] = 'all'
             log_params(tmp_args_dt)
 
+            if '-' in args.pretrained_id:
+                pretrained_ids = args.pretrained_id.split('-')
+            else:
+                pretrained_ids = []
+
             all_folds_id_ls = []
             for fold in [1, 2, 3, 4]:
                 # write super parameters from set_args.py to record file.
+                if len(pretrained_ids):
+                    args.pretrained_id = pretrained_ids[fold-1]
+
                 id = record_1st(RECORD_FPATH)
                 all_folds_id_ls.append(id)
                 with mlflow.start_run(run_name=str(id) + '_fold_' + str(fold), tags={"mlflow.note.content": f"fold: {fold}"}, nested=True):
                     args.fold = fold
-                    if '-' in args.pretrained_id:
-                        args.pretrained_id = args.pretrained_id.split('-')[fold-1]
 
                     args.id = id  # do not need to pass id seperately to the latter function
                     tmp_args_dt = vars(args)

@@ -23,7 +23,7 @@ import pandas as pd
 from torch.utils.data import Dataset
 import monai
 from sklearn.model_selection import KFold
-from lung_function.modules.trans import LoadDatad, SaveDatad, RandomCropForegroundd, RemoveTextd, LoadPointCloud, SampleShuffled
+from lung_function.modules.trans import LoadDatad, SaveDatad, RandomCropForegroundd, RemoveTextd, LoadPointCloud, SampleShuffled,ShiftCoordinated
 import os
 import json
 import itertools
@@ -42,12 +42,22 @@ def build_dataset(file_ls, PNB = 140000):
     return points_np
 
 
-def xformd(mode, z_size: int = 192, y_size: int = 256, x_size: int = 256, pad_truncated_dir='tmp', target='FVC', crop_foreground=False, pad_ratio=1, inputmode=None, PNB=None):
+def xformd(mode, args, pad_truncated_dir='tmp'):
+    z_size=args.z_size
+    y_size=args.y_size
+    x_size=args.x_size
+    target=args.target
+    crop_foreground=args.crop_foreground
+    pad_ratio=args.pad_ratio
+    inputmode=args.input_mode
+    PNB=args.PNB
+
     post_pad_size = [int(i * pad_ratio) for i in [z_size, y_size, x_size]]
     if inputmode=='vessel_skeleton_pcd':
         keys = ('vessel_skeleton_pcd', )
-        xforms = [LoadPointCloud(keys=keys, target=target),
-                SampleShuffled(keys=keys, PNB=PNB, total_shuffle=True, sub_shuffle=True),
+        xforms = [LoadPointCloud(keys=keys, target=target, position_center_norm=args.position_center_norm),
+                SampleShuffled(keys=keys, PNB=PNB, total_shuffle=args.total_shuffle, sub_shuffle=args.sub_shuffle),
+                # ShiftCoordinated(keys=keys, position_center_norm=args.position_center_norm),                
                 CastToTyped(keys = keys, dtype=np.float32),
                 ToTensord(keys = keys),
                 RemoveTextd(keys='fpath')]
@@ -248,17 +258,17 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
     # tsxformd = xformd('test')
     data_dt = {}
     if 'train' in datasetmode:
-        tr_dataset = monai.data.CacheDataset(data=tr_data, transform=xformd('train', z_size=args.z_size, y_size=args.y_size, x_size=args.x_size, pad_truncated_dir=pad_truncated_dir, target=args.target, crop_foreground=args.crop_foreground, pad_ratio=args.pad_ratio, inputmode=args.input_mode, PNB=args.PNB), num_workers=0, cache_rate=1)
+        tr_dataset = monai.data.CacheDataset(data=tr_data, transform=xformd('train', args, pad_truncated_dir=pad_truncated_dir), num_workers=0, cache_rate=1)
         train_dataloader = DataLoader(tr_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.workers, persistent_workers=True)
         data_dt['train'] = train_dataloader
 
     if 'valid' in datasetmode:
-        vd_dataset = monai.data.CacheDataset(data=vd_data, transform=xformd('valid', z_size=args.z_size, y_size=args.y_size, x_size=args.x_size, pad_truncated_dir=pad_truncated_dir, target=args.target, crop_foreground=args.crop_foreground, pad_ratio=args.pad_ratio, inputmode=args.input_mode, PNB=args.PNB), num_workers=0, cache_rate=1)
+        vd_dataset = monai.data.CacheDataset(data=vd_data, transform=xformd('valid', args, pad_truncated_dir=pad_truncated_dir), num_workers=0, cache_rate=1)
         valid_dataloader = DataLoader(vd_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.workers, persistent_workers=True)
         data_dt['valid'] = valid_dataloader
 
     if 'test' in datasetmode:
-        ts_dataset = monai.data.CacheDataset(data=ts_data, transform=xformd('test', z_size=args.z_size, y_size=args.y_size, x_size=args.x_size, pad_truncated_dir=pad_truncated_dir, target=args.target, crop_foreground=args.crop_foreground, pad_ratio=args.pad_ratio, inputmode=args.input_mode, PNB=args.PNB), num_workers=0, cache_rate=1)
+        ts_dataset = monai.data.CacheDataset(data=ts_data, transform=xformd('test', args, pad_truncated_dir=pad_truncated_dir), num_workers=0, cache_rate=1)
         test_dataloader = DataLoader(ts_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.workers, persistent_workers=True)
         data_dt['test'] = test_dataloader
 

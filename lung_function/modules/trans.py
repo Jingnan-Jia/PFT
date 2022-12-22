@@ -57,6 +57,24 @@ class SaveDatad(MapTransform):
                 print(f"successfully save pad_truncated data to {fpath_lungmask}")
         return d
 
+
+class ShiftCoordinated(MapTransform):
+    """
+    Shift the coordinate to the center of the image.
+    """
+    def __init__(self, keys, position_center_norm):
+
+        super().__init__(keys, allow_missing_keys=True)
+        self.position_center_norm = position_center_norm
+
+    def __call__(self, data: TransInOut) -> TransInOut:
+        for key in self.keys:  
+            if self.position_center_norm:  # shuffle all points
+                data[key] = data[key]
+
+        return data
+
+
 class SampleShuffled(MapTransform):
     """
     Randomly shuffle the location data.
@@ -82,9 +100,10 @@ class SampleShuffled(MapTransform):
         return data
 
 class LoadPointCloud(MapTransform):
-    def __init__(self, keys, target):
+    def __init__(self, keys, target, position_center_norm):
         super().__init__(keys, allow_missing_keys=True)
         self.target = [i.lstrip() for i in target.split('-')]
+        self.position_center_norm = position_center_norm
 
 
     def __call__(self, data: TransInOut) -> TransInOut:
@@ -93,6 +112,8 @@ class LoadPointCloud(MapTransform):
         xyzr = pd.read_pickle(fpath)
 
         xyz_mm = xyzr['data'][:,:3] * xyzr['spacing']  # convert voxel location to physical mm
+        if self.position_center_norm:
+            xyz_mm = xyz_mm - xyz_mm.mean(axis=0)
         xyzr_mm = np.concatenate((xyz_mm, xyzr['data'][:,-1].reshape(-1,1)), axis=1)
         y = np.array([data[i] for i in self.target])
         file_id = fpath.split(".nii.gz")[0].split('SSc_patient_')[-1].split('_')[0]
