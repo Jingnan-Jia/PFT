@@ -17,7 +17,7 @@ def get_args():
 
     # Common args with set_args.py
     parser.add_argument('--mode', choices=('train', 'infer', 'continue_train'), help='mode', type=str, default='train')
-    parser.add_argument('--pretrained_id', help='id used for inference, or continue_train', type=str, default="1504-1505-1510-1515") #SSc-852-853-854-855
+    parser.add_argument('--pretrained_id', help='id used for inference, or continue_train', type=str, default="0") #SSc-852-853-854-855, 1504-1505-1510-1515
     # parser.add_argument('--reload_jobid', help='jobid used for inference, or continue_train', type=int, default=0)
     parser.add_argument('--pretrained_imgnet', help='if pretrained from imagenet', type=boolean_string, default='False')
     parser.add_argument('--net', choices=('vgg11_3d','vit3', 'vgg16_3d','vgg19_3d', 'r3d_resnet', 'cnn3fc1', 'cnn4fc2',
@@ -32,13 +32,16 @@ def get_args():
     parser.add_argument('--fold', choices=(1, 2, 3, 4), help='1 to 4', type=int, default=1)
     parser.add_argument('--valid_period', help='how many epochs between 2 validation', type=int, default=5)
     parser.add_argument('--workers', help='number of workers for dataloader', type=int, default=6)
-    parser.add_argument('--loss', choices=('mse', 'mae', 'smooth_mae', 'mse+mae', 'msehigher'), help='mode', type=str,
-                        default='mse')
+    parser.add_argument('--loss', choices=('mse', 'mae', 'smooth_mae', 'mse+mae', 'msehigher', 'mse_regular'), help='mode', type=str,
+                        default='mse_regular')
+    parser.add_argument('--mat_diff_loss_scale', help='scale for another loss', type=float, default=0.001)
+
     parser.add_argument('--pretrained', choices=(1, 0), help='pretrained or not', type=int, default=0)
     parser.add_argument('--epochs', help='total epochs', type=int, default=500)
     parser.add_argument('--weight_decay', help='L2 regularization', type=float,
                         default=0.0001)  # must be a float number !
     parser.add_argument('--lr', help='learning rate', type=float, default=0.0001)
+
 
     # data 
     parser.add_argument('--PNB', help='points number for each image', type=int, default=7000)

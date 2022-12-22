@@ -5,6 +5,8 @@
 
 import torch
 import torch.nn as nn
+from lung_function.modules.networks.models_pcd.pointnet_utils import feature_transform_reguliarzer
+import torch.nn.functional as F
 
 
 class MSEHigher(nn.Module):
@@ -45,7 +47,21 @@ class MsePlusMae(nn.Module):
         return mse + mae
 
 
-def get_loss(loss: str) -> nn.Module:
+class pointnet_loss(torch.nn.Module):
+    def __init__(self, mat_diff_loss_scale=0.001):
+        super().__init__()
+        self.mse = nn.MSELoss()
+        self.mat_diff_loss_scale = mat_diff_loss_scale
+
+    def forward(self, pred, target, trans_feat):
+        loss = self.mse(pred, target)
+        mat_diff_loss = feature_transform_reguliarzer(trans_feat)
+
+        total_loss = loss + mat_diff_loss * self.mat_diff_loss_scale
+        return total_loss
+
+
+def get_loss(loss: str, mat_diff_loss_scale=None) -> nn.Module:
     """Return loss from its name
 
     Args:
@@ -59,6 +75,8 @@ def get_loss(loss: str) -> nn.Module:
 
     if loss == 'mae':
         loss_fun = nn.L1Loss()
+    elif loss == 'mse_regular':
+        loss_fun =pointnet_loss(mat_diff_loss_scale=mat_diff_loss_scale)
     elif loss == 'smooth_mae':
         loss_fun = nn.SmoothL1Loss()
     elif loss == 'mse':

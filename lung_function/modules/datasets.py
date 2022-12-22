@@ -23,7 +23,7 @@ import pandas as pd
 from torch.utils.data import Dataset
 import monai
 from sklearn.model_selection import KFold
-from lung_function.modules.trans import LoadDatad, SaveDatad, RandomCropForegroundd, RemoveTextd, LoadPointCloud, SampleShuffled,ShiftCoordinated
+from lung_function.modules.trans import LoadDatad, SaveDatad, RandomCropForegroundd, RemoveTextd, LoadPointCloud, SampleShuffled
 import os
 import json
 import itertools

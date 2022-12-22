@@ -113,7 +113,7 @@ class LoadPointCloud(MapTransform):
 
         xyz_mm = xyzr['data'][:,:3] * xyzr['spacing']  # convert voxel location to physical mm
         if self.position_center_norm:
-            xyz_mm = xyz_mm - xyz_mm.mean(axis=0)
+            xyz_mm -= xyz_mm.mean(axis=0)
         xyzr_mm = np.concatenate((xyz_mm, xyzr['data'][:,-1].reshape(-1,1)), axis=1)
         y = np.array([data[i] for i in self.target])
         file_id = fpath.split(".nii.gz")[0].split('SSc_patient_')[-1].split('_')[0]

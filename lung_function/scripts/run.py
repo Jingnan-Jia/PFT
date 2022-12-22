@@ -128,7 +128,7 @@ class Run:
 
         self.data_dt = all_loaders(
             self.mypath.data_dir, self.mypath.label_fpath, args)
-        self.loss_fun = get_loss(args.loss)
+        self.loss_fun = get_loss(args.loss, mat_diff_loss_scale=args.mat_diff_loss_scale)
         self.opt = torch.optim.Adam(
             self.net.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         self.net = self.net.to(self.device)
@@ -240,9 +240,15 @@ class Run:
             with torch.cuda.amp.autocast():
                 if mode != 'train' or save_pred:  # save pred for inference
                     with torch.no_grad():
-                        pred = self.net(batch_x)
+                        if args.loss=='mse_regular':
+                            pred, trans_feat = self.net(batch_x)
+                        else:
+                            pred = self.net(batch_x)
                 else:
-                    pred = self.net(batch_x)
+                    if args.loss=='mse_regular':
+                        pred, trans_feat = self.net(batch_x)
+                    else:
+                        pred = self.net(batch_x)
                 if save_pred:
                     head = ['pat_id']
                     head.extend(self.target)
@@ -267,7 +273,10 @@ class Run:
                     medutils.appendrows_to(
                         self.mypath.save_pred_fpath(mode), saved_pred, head=head)
 
-                loss = self.loss_fun(pred, batch_y)
+                if args.loss=='mse_regular':
+                    loss = self.loss_fun(pred, batch_y, trans_feat)
+                else:
+                    loss = self.loss_fun(pred, batch_y)
                 with torch.no_grad():
                     mae_ls = [loss_fun_mae(pred[:, i], batch_y[:, i]).item()
                               for i in range(len(self.target))]

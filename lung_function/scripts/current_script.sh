@@ -66,4 +66,4 @@ ENDSSH
 echo "Hello, I am back in $(hostname) to run the code"
 
 # shellcheck disable=SC2046
-idx=0; export CUDA_VISIBLE_DEVICES=$idx; stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --ct_sp='ori' --net='pointnet_reg' --PNB=7000 --batch_size=2 --mode='continue_train' --input_mode='vessel_skeleton_pcd' --y_size=240 --x_size=240 --z_size=240 --epochs=500 --workers=6 --test_pat='random_as_ori' --target='FVC-DLCO_SB-FEV1-TLC_He' --remark="Tune PNB, random shuffle, pointnet_reg"
+idx=0; export CUDA_VISIBLE_DEVICES=$idx; stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --ct_sp='ori' --net='pointnet_reg' --PNB=7000 --batch_size=2 --mode='train' --input_mode='vessel_skeleton_pcd' --y_size=240 --x_size=240 --z_size=240 --epochs=500 --workers=6 --test_pat='random_as_ori' --target='FVC-DLCO_SB-FEV1-TLC_He' --remark="loss_regular=0.001, pointnet_reg"

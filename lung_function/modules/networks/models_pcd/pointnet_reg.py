@@ -21,7 +21,7 @@ class get_model(nn.Module):
         x = F.relu(self.bn1(self.fc1(x)))
         x = F.relu(self.bn2(self.dropout(self.fc2(x))))
         x = self.fc3(x)
-        return x
+        return x, trans_feat
 
 class get_loss(torch.nn.Module):
     def __init__(self, mat_diff_loss_scale=0.001):
