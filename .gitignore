@@ -8,6 +8,7 @@ lung_function/modules/__pycache__/
 .idea/
 .vscode/
 *.db
+*.db-jornal*
 *.csv
 *.mha
 *.mhd
