@@ -476,6 +476,9 @@ def main():
                 all_folds_id_ls.append(id)
                 with mlflow.start_run(run_name=str(id) + '_fold_' + str(fold), tags={"mlflow.note.content": f"fold: {fold}"}, nested=True):
                     args.fold = fold
+                    if '-' in args.pretrained_id:
+                        args.pretrained_id = args.pretrained_id.split('-')[fold-1]
+
                     args.id = id  # do not need to pass id seperately to the latter function
                     tmp_args_dt = vars(args)
                     log_params(tmp_args_dt)
