@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from pointnet_utils import PointNetEncoder, feature_transform_reguliarzer
 
 class get_model(nn.Module):
-    def __init__(self, k=4, pointnet_fc_ls=None):
+    def __init__(self, k=4, pointnet_fc_ls=None, loss=None):
         super(get_model, self).__init__()
         channel = 4
         fc_ls = pointnet_fc_ls
@@ -16,13 +16,17 @@ class get_model(nn.Module):
         self.bn1 = nn.BatchNorm1d(fc_ls[1])
         self.bn2 = nn.BatchNorm1d(fc_ls[2])
         self.relu = nn.ReLU()
+        self.loss = loss
 
     def forward(self, x):
         x, trans, trans_feat = self.feat(x)
         x = F.relu(self.bn1(self.fc1(x)))
         x = F.relu(self.bn2(self.dropout(self.fc2(x))))
         x = self.fc3(x)
-        return x, trans_feat
+        if self.loss=='mse_regular':
+            return x, trans_feat
+        else:
+            return x
 
 class get_loss(torch.nn.Module):
     def __init__(self, mat_diff_loss_scale=0.001):

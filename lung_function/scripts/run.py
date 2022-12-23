@@ -117,7 +117,7 @@ class Run:
 
         self.pointnet_fc_ls = [int(i) for i in args.pointnet_fc_ls.split('-')]
         self.net = get_net_3d(name=args.net, nb_cls=len(self.target), image_size=args.x_size,
-                              pretrained=args.pretrained_imgnet, pointnet_fc_ls=self.pointnet_fc_ls)  # output FVC and FEV1
+                              pretrained=args.pretrained_imgnet, pointnet_fc_ls=self.pointnet_fc_ls, loss=args.loss)  # output FVC and FEV1
         self.fold = args.fold
         self.flops_done = False
 
