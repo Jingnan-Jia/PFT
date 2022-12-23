@@ -114,13 +114,14 @@ class Run:
         self.mypath = PFTPath(args.id, check_id_dir=False, space=args.ct_sp)
         self.device = torch.device("cuda")  # 'cuda'
         self.target = [i.lstrip() for i in args.target.split('-')]
-        self.net = get_net_3d(name=args.net, nb_cls=len(
-            self.target), image_size=args.x_size, pretrained=args.pretrained_imgnet)  # output FVC and FEV1
+
+        self.pointnet_fc_ls = [int(i) for i in args.pointnet_fc_ls.split('-')]
+        self.net = get_net_3d(name=args.net, nb_cls=len(self.target), image_size=args.x_size,
+                              pretrained=args.pretrained_imgnet, pointnet_fc_ls=self.pointnet_fc_ls)  # output FVC and FEV1
         self.fold = args.fold
         self.flops_done = False
 
         print('net:', self.net)
-
 
         net_parameters = count_parameters(self.net)
         net_parameters = str(round(net_parameters / 1e6, 2))
@@ -128,7 +129,8 @@ class Run:
 
         self.data_dt = all_loaders(
             self.mypath.data_dir, self.mypath.label_fpath, args)
-        self.loss_fun = get_loss(args.loss, mat_diff_loss_scale=args.mat_diff_loss_scale)
+        self.loss_fun = get_loss(
+            args.loss, mat_diff_loss_scale=args.mat_diff_loss_scale)
         self.opt = torch.optim.Adam(
             self.net.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         self.net = self.net.to(self.device)
@@ -162,15 +164,15 @@ class Run:
 
                 if type(ckpt) is dict and 'model' in ckpt:
                     model = ckpt['model']
-                    if  'metric_name' in ckpt:
+                    if 'metric_name' in ckpt:
                         if 'validMAEEpoch_AllBest' == ckpt['metric_name']:
                             validMAEEpoch_AllBest = ckpt['current_metric_value']
                 else:
                     model = ckpt
-                self.net.load_state_dict(model,strict=False)  # model_fpath need to exist
+                # model_fpath need to exist
+                self.net.load_state_dict(model, strict=False)
                 # move the new initialized layers to GPU
                 self.net = self.net.to(self.device)
-
 
         self.BestMetricDt = {'trainLossEpochBest': 1000,
                              # 'trainnoaugLossEpochBest': 1000,
@@ -203,7 +205,7 @@ class Run:
             data_idx += 1
             if epoch_idx < 3:  # only show first 3 epochs' data loading time
                 t1 = time.time()
-                log_metric('TLoad', t1-t0, data_idx+epoch_idx*len(dataloader))
+                log_metric('TLoad', t1 - t0, data_idx + epoch_idx * len(dataloader))
             if args.input_mode == 'vessel':
                 key = 'vessel'
             elif args.input_mode == 'vessel_skeleton_pcd':
@@ -240,12 +242,12 @@ class Run:
             with torch.cuda.amp.autocast():
                 if mode != 'train' or save_pred:  # save pred for inference
                     with torch.no_grad():
-                        if args.loss=='mse_regular':
+                        if args.loss == 'mse_regular':
                             pred, trans_feat = self.net(batch_x)
                         else:
                             pred = self.net(batch_x)
                 else:
-                    if args.loss=='mse_regular':
+                    if args.loss == 'mse_regular':
                         pred, trans_feat = self.net(batch_x)
                     else:
                         pred = self.net(batch_x)
@@ -253,7 +255,8 @@ class Run:
                     head = ['pat_id']
                     head.extend(self.target)
 
-                    batch_pat_id = data['pat_id'].cpu().detach().numpy()  # shape (N,1)
+                    batch_pat_id = data['pat_id'].cpu(
+                    ).detach().numpy()  # shape (N,1)
                     batch_pat_id = int2str(batch_pat_id)  # shape (N,1)
 
                     batch_y_np = batch_y.cpu().detach().numpy()  # shape (N, out_nb)
@@ -273,7 +276,7 @@ class Run:
                     medutils.appendrows_to(
                         self.mypath.save_pred_fpath(mode), saved_pred, head=head)
 
-                if args.loss=='mse_regular':
+                if args.loss == 'mse_regular':
                     loss = self.loss_fun(pred, batch_y, trans_feat)
                 else:
                     loss = self.loss_fun(pred, batch_y)
@@ -306,9 +309,10 @@ class Run:
                            epoch_idx*len(dataloader))
                 t0 = t2  # reset the t0
         log_metric(mode+'LossEpoch', loss_accu/len(dataloader), epoch_idx)
-        log_metric(mode+'MAEEpoch_All', mae_accu_all/len(dataloader), epoch_idx)
+        log_metric(mode+'MAEEpoch_All', mae_accu_all /
+                   len(dataloader), epoch_idx)
         for t, i in zip(self.target, mae_accu_ls):
-            log_metric(mode + 'MAEEpoch_' + t, i / len(dataloader), epoch_idx)              
+            log_metric(mode + 'MAEEpoch_' + t, i / len(dataloader), epoch_idx)
 
         self.BestMetricDt[mode + 'LossEpochBest'] = min(
             self.BestMetricDt[mode+'LossEpochBest'], loss_accu/len(dataloader))
@@ -316,19 +320,24 @@ class Run:
         self.BestMetricDt[mode + 'MAEEpoch_AllBest'] = min(
             self.BestMetricDt[mode+'MAEEpoch_AllBest'], mae_accu_all/len(dataloader))
 
-        log_metric(mode+'LossEpochBest', self.BestMetricDt[mode + 'LossEpochBest'], epoch_idx)
-        log_metric(mode+'MAEEpoch_AllBest', self.BestMetricDt[mode + 'MAEEpoch_AllBest'], epoch_idx)
+        log_metric(mode+'LossEpochBest',
+                   self.BestMetricDt[mode + 'LossEpochBest'], epoch_idx)
+        log_metric(mode+'MAEEpoch_AllBest',
+                   self.BestMetricDt[mode + 'MAEEpoch_AllBest'], epoch_idx)
 
         if self.BestMetricDt[mode+'MAEEpoch_AllBest'] == mae_accu_all/len(dataloader):
             for t, i in zip(self.target, mae_accu_ls):
-                log_metric(mode + 'MAEEpoch_' + t + 'Best', i / len(dataloader), epoch_idx)
-             
+                log_metric(mode + 'MAEEpoch_' + t + 'Best',
+                           i / len(dataloader), epoch_idx)
+
             if mode == 'valid':
-                print( f"Current mae is {self.BestMetricDt[mode+'MAEEpoch_AllBest']}, better than the previous mae: {tmp}, save model.")
+                print(
+                    f"Current mae is {self.BestMetricDt[mode+'MAEEpoch_AllBest']}, better than the previous mae: {tmp}, save model.")
                 ckpt = {'model': self.net.state_dict(),
                         'metric_name': mode+'MAEEpoch_AllBest',
                         'current_metric_value': self.BestMetricDt[mode+'MAEEpoch_AllBest']}
                 torch.save(ckpt, self.mypath.model_fpath)
+
 
 @dec_record_cgpu(args.outfile)
 def run(args: Namespace):
@@ -350,15 +359,17 @@ def run(args: Namespace):
                 print('start inference')
                 if os.path.exists(myrun.mypath.model_fpath):
                     ckpt = torch.load(myrun.mypath.model_fpath,
-                                    map_location=myrun.device)
+                                      map_location=myrun.device)
                     if isinstance(ckpt, dict) and 'model' in ckpt:
                         model = ckpt['model']
                     else:
                         model = ckpt
-                    myrun.net.load_state_dict(model)  # model_fpath need to exist
+                    # model_fpath need to exist
+                    myrun.net.load_state_dict(model)
                     print(f"load net from {myrun.mypath.model_fpath}")
                 else:
-                    print(f"no model found at {myrun.mypath.model_fpath}, let me save the current model to this lace")
+                    print(
+                        f"no model found at {myrun.mypath.model_fpath}, let me save the current model to this lace")
                     ckpt = {'model': myrun.net.state_dict()}
                     torch.save(ckpt, myrun.mypath.model_fpath)
                 for mode in modes:
@@ -396,13 +407,15 @@ def average_all_folds(id_ls: Sequence[int], current_id: int, experiment, key='pa
             target_dt = mlflow_run.data.metrics
             current_dt = current_run.data.metrics
         else:
-            raise Exception(f"Expected key of 'params' or 'metrics', but got key: {key}")
+            raise Exception(
+                f"Expected key of 'params' or 'metrics', but got key: {key}")
 
         for k, v in target_dt.items():
             if k not in current_dt:  # re-writing parameters in mlflow is not allowed
                 if k not in all_dt:
                     all_dt[k] = []
-                if not isinstance(all_dt[k], list):  # this is a value, not a list (see bellow)
+                # this is a value, not a list (see bellow)
+                if not isinstance(all_dt[k], list):
                     continue
                 try:
                     all_dt[k].append(float(v))
@@ -410,7 +423,8 @@ def average_all_folds(id_ls: Sequence[int], current_id: int, experiment, key='pa
                     # can not be converted to numbers which can not be averaged
                     all_dt[k] = v
 
-    all_dt = {k: statistics.mean(v) if isinstance(v, list) else v for k, v in all_dt.items()}
+    all_dt = {k: statistics.mean(v) if isinstance(
+        v, list) else v for k, v in all_dt.items()}
 
     return all_dt
 
@@ -432,11 +446,13 @@ def log_metrics_all_folds_average(id_ls: list, id: int, experiment):
         log_params(dt_1)
         log_params(dt_2)
     else:
-        raise Exception(f"Our logging request can contain at most 200 params. Got {len(param_dt)} params")
+        raise Exception(
+            f"Our logging request can contain at most 200 params. Got {len(param_dt)} params")
 
     # average metrics
     metric_dt = average_all_folds(id_ls, id, experiment, key='metrics')
     log_metrics(metric_dt, 0)
+
 
 def main():
     SEED = 4
@@ -506,10 +522,9 @@ def main():
                     tmp_args_dt = vars(args)
                     log_params(tmp_args_dt)
                     run(args)
-            log_metrics_all_folds_average(all_folds_id_ls, current_id, experiment)
+            log_metrics_all_folds_average(
+                all_folds_id_ls, current_id, experiment)
 
 
 if __name__ == "__main__":
     main()
-
-

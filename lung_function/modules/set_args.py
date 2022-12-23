@@ -33,7 +33,7 @@ def get_args():
     parser.add_argument('--valid_period', help='how many epochs between 2 validation', type=int, default=5)
     parser.add_argument('--workers', help='number of workers for dataloader', type=int, default=6)
     parser.add_argument('--loss', choices=('mse', 'mae', 'smooth_mae', 'mse+mae', 'msehigher', 'mse_regular'), help='mode', type=str,
-                        default='mse_regular')
+                        default='mse')
     parser.add_argument('--mat_diff_loss_scale', help='scale for another loss', type=float, default=0.001)
 
     parser.add_argument('--pretrained', choices=(1, 0), help='pretrained or not', type=int, default=0)
@@ -42,6 +42,9 @@ def get_args():
                         default=0.0001)  # must be a float number !
     parser.add_argument('--lr', help='learning rate', type=float, default=0.0001)
 
+    # Network
+    
+    parser.add_argument('--pointnet_fc_ls', help='a parameter list for fully connected layers. First number is the feature number after feature extraction', type=str, default="1024-512-256")
 
     # data 
     parser.add_argument('--PNB', help='points number for each image', type=int, default=7000)

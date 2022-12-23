@@ -4,16 +4,17 @@ import torch.nn.functional as F
 from pointnet_utils import PointNetEncoder, feature_transform_reguliarzer
 
 class get_model(nn.Module):
-    def __init__(self, k=4):
+    def __init__(self, k=4, pointnet_fc_ls=None):
         super(get_model, self).__init__()
         channel = 4
-        self.feat = PointNetEncoder(global_feat=True, feature_transform=True, channel=channel)
-        self.fc1 = nn.Linear(1024, 512)
-        self.fc2 = nn.Linear(512, 256)
-        self.fc3 = nn.Linear(256, k)
+        fc_ls = pointnet_fc_ls
+        self.feat = PointNetEncoder(global_feat=True, feature_transform=True, channel=channel, feature_nb=fc_ls[0])
+        self.fc1 = nn.Linear(fc_ls[0], fc_ls[1])
+        self.fc2 = nn.Linear(fc_ls[1], fc_ls[2])
+        self.fc3 = nn.Linear(fc_ls[2], k)
         self.dropout = nn.Dropout(p=0.4)
-        self.bn1 = nn.BatchNorm1d(512)
-        self.bn2 = nn.BatchNorm1d(256)
+        self.bn1 = nn.BatchNorm1d(fc_ls[1])
+        self.bn2 = nn.BatchNorm1d(fc_ls[2])
         self.relu = nn.ReLU()
 
     def forward(self, x):

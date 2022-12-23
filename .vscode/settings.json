@@ -5,7 +5,7 @@
         "**/mlruns/**": true,
         "**/results/**": true
     },
-    "python.linting.flake8Enabled": false,
+    "python.linting.flake8Enabled": true,
     "python.linting.enabled": true,
     "editor.rulers": [120],
     "python.linting.pylintArgs": [
@@ -16,6 +16,10 @@
         
         "--max-line-length=120",
     ],
-    "python.linting.pylintEnabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.pylintArgs": [
+        "--errors-only",
+        "--generated-members=numpy.* ,torch.* ,cv2.* , cv.*"
+        ]
 
 }
