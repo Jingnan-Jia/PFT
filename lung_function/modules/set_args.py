@@ -12,7 +12,7 @@ def boolean_string(s):
     return s == 'True'
 
 
-def get_args():
+def get_args(jupyter=False):
     parser = argparse.ArgumentParser(description="SSc score prediction.")
 
     # Common args with set_args.py
@@ -73,7 +73,13 @@ def get_args():
     parser.add_argument('--x_size', help='length of patch along x axil ', type=int, default=240)
     parser.add_argument('--pad_ratio', help='padding ratio', type=float, default=1.5)
 
-    args = parser.parse_args()
+    # For jupyter notebooks
+    if jupyter:
+        parser.add_argument("--f", help="a dummy argument to fool ipython", default="0")
+
+        args, unknown = parser.parse_known_args()
+    else:
+        args = parser.parse_args()
 
     if args.x_size == 0 or args.y_size == 0:
         raise Exception("0 x_size or y_size: ")

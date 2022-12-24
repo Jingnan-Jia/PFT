@@ -271,10 +271,10 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
     if nb:
         tr_data, vd_data, ts_data = tr_data[:nb], vd_data[:nb], ts_data[:nb]
     # tr_data, vd_data, ts_data = tr_data[:10], vd_data[:10], ts_data[:10]
-    for d in [tr_data, vd_data, ts_data]:
-        print("-----")
-        for d_one in d:
-            print(d_one['subjectID'])
+    # for d in [tr_data, vd_data, ts_data]:
+    #     print("-----")
+    #     for d_one in d:
+    #         print(d_one['subjectID'])
     # trxformd = xformd('train')
     # vdxformd = xformd('valid')
     # tsxformd = xformd('test')
