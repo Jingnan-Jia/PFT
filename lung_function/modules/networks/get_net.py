@@ -21,7 +21,8 @@ def get_net_3d(name: str,
                image_size=240, 
                pretrained=True, 
                pointnet_fc_ls=None,
-               loss=None):
+               loss=None,
+               dp_fc1_flag=False):
     level_node = 0
     if 'pointnet' in name:
         # if name=='pointnet_reg':
@@ -30,7 +31,7 @@ def get_net_3d(name: str,
             if classname.find('ReLU') != -1:
                 m.inplace = True
         pcd_model = importlib.import_module(name)
-        net = pcd_model.get_model(nb_cls, pointnet_fc_ls, loss)
+        net = pcd_model.get_model(nb_cls, pointnet_fc_ls, loss, dp_fc1_flag)
         net.apply(inplace_relu)
         # elif name=='pointnet2_reg':
 

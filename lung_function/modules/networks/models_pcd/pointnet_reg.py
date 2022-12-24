@@ -5,7 +5,7 @@ from lung_function.modules.networks.models_pcd.pointnet_utils import PointNetEnc
 
 
 class get_model(nn.Module):
-    def __init__(self, k=4, pointnet_fc_ls=None, loss=None):
+    def __init__(self, k=4, pointnet_fc_ls=None, loss=None, dp_fc1_flag=False):
         super(get_model, self).__init__()
         channel = 4
         fc_ls = pointnet_fc_ls
@@ -19,10 +19,14 @@ class get_model(nn.Module):
         self.bn2 = nn.BatchNorm1d(fc_ls[2])
         self.relu = nn.ReLU()
         self.loss = loss
-
+        self.dp_fc1_flag = dp_fc1_flag
+        self.dp_fc1 = nn.Dropout(p=0.4)
     def forward(self, x):
         x, trans, trans_feat = self.feat(x)
-        x = F.relu(self.bn1(self.fc1(x)))
+        if self.dp_fc1_flag:
+            x = F.relu(self.bn1(self.dp_fc1(self.fc1(x))))
+        else:
+            x = F.relu(self.bn1(self.fc1(x)))
         x = F.relu(self.bn2(self.dropout(self.fc2(x))))
         x = self.fc3(x)
         if self.loss == 'mse_regular':
