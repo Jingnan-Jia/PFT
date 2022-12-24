@@ -45,8 +45,8 @@ def get_args():
     # Network
     
     parser.add_argument('--pointnet_fc_ls', help='a parameter list for fully connected layers. \
-    First number is the feature number after feature extraction', type=str, default="2048-512-256")
-    parser.add_argument('--dp_fc1_flag', help='dropout for fc1', type=boolean_string, default=False)
+    First number is the feature number after feature extraction', type=str, default="1024-512")
+    parser.add_argument('--dp_fc1_flag', help='dropout for fc1', type=boolean_string, default=True)
 
     # data 
     parser.add_argument('--PNB', help='points number for each image', type=int, default=7000)
