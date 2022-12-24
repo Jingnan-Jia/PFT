@@ -1,14 +1,16 @@
 import torch.nn as nn
 import torch.utils.data
 import torch.nn.functional as F
-from pointnet_utils import PointNetEncoder, feature_transform_reguliarzer
+from lung_function.modules.networks.models_pcd.pointnet_utils import PointNetEncoder, feature_transform_reguliarzer
+
 
 class get_model(nn.Module):
     def __init__(self, k=4, pointnet_fc_ls=None, loss=None):
         super(get_model, self).__init__()
         channel = 4
         fc_ls = pointnet_fc_ls
-        self.feat = PointNetEncoder(global_feat=True, feature_transform=True, channel=channel, feature_nb=fc_ls[0])
+        self.feat = PointNetEncoder(
+            global_feat=True, feature_transform=True, channel=channel, feature_nb=fc_ls[0])
         self.fc1 = nn.Linear(fc_ls[0], fc_ls[1])
         self.fc2 = nn.Linear(fc_ls[1], fc_ls[2])
         self.fc3 = nn.Linear(fc_ls[2], k)
@@ -23,10 +25,11 @@ class get_model(nn.Module):
         x = F.relu(self.bn1(self.fc1(x)))
         x = F.relu(self.bn2(self.dropout(self.fc2(x))))
         x = self.fc3(x)
-        if self.loss=='mse_regular':
+        if self.loss == 'mse_regular':
             return x, trans_feat
         else:
             return x
+
 
 class get_loss(torch.nn.Module):
     def __init__(self, mat_diff_loss_scale=0.001):
