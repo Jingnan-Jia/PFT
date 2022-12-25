@@ -49,7 +49,7 @@ def get_args(jupyter=False):
     parser.add_argument('--dp_fc1_flag', help='dropout for fc1', type=boolean_string, default=True)
 
     # data 
-    parser.add_argument('--shift_range', help='shift range', type=int, default=0.1)
+    parser.add_argument('--shift_range', help='shift range', type=float, default=0.1)
     parser.add_argument('--PNB', help='points number for each image', type=int, default=7000)
     parser.add_argument('--sub_shuffle', help='if shuffle the subimage after sampling using PNB', type=boolean_string, default=True)
     parser.add_argument('--total_shuffle', help='if shuffle the total points of the whole image', type=boolean_string, default=True)
