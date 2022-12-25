@@ -221,8 +221,8 @@ class Run:
                 points = provider.random_point_dropout(points)
                 # points[:, :, 0:3] = provider.random_scale_point_cloud(
                 #     points[:, :, 0:3])
-                # points[:, :, 0:3] = provider.shift_point_cloud(
-                #     points[:, :, 0:3])
+                points[:, :, 0:3] = provider.shift_point_cloud(
+                    points[:, :, 0:3])
                 points = torch.Tensor(points)
                 points = points.transpose(2, 1)
                 data[key] = points
