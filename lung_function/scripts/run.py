@@ -203,6 +203,7 @@ class Run:
         mae_accu_ls = [0 for _ in self.target]
         mae_accu_all = 0
         for data in dataloader:
+            torch.cuda.empty_cache()  # avoid memory leak
             data_idx += 1
             if epoch_idx < 3:  # only show first 3 epochs' data loading time
                 t1 = time.time()
