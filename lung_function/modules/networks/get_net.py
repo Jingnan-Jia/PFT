@@ -31,7 +31,11 @@ def get_net_3d(name: str,
             if classname.find('ReLU') != -1:
                 m.inplace = True
         pcd_model = importlib.import_module(name)
-        net = pcd_model.get_model(nb_cls, pointnet_fc_ls, loss, dp_fc1_flag)
+        if name=='pointnet_reg':
+
+            net = pcd_model.get_model(nb_cls, pointnet_fc_ls, loss, dp_fc1_flag)
+        else:
+            net = pcd_model.get_model(nb_cls)
         net.apply(inplace_relu)
         # elif name=='pointnet2_reg':
 

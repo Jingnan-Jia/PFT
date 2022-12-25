@@ -23,7 +23,7 @@ def get_args(jupyter=False):
     parser.add_argument('--net', choices=('vgg11_3d','vit3', 'vgg16_3d','vgg19_3d', 'r3d_resnet', 'cnn3fc1', 'cnn4fc2',
                                           'cnn5fc2', 'cnn6fc2', 'cnn2fc1', 'cnn3fc2', 'r3d_18', 'slow_r50',
                                           'slowfast_r50', 'x3d_xs', 'x3d_s', 'x3d_m', 'x3d_l', 'pointnet_reg', 'pointnet2_reg'),# 'r2plus1d_18' out of memory
-                        help='network name', type=str, default='pointnet_reg')
+                        help='network name', type=str, default='pointnet2_reg')
     parser.add_argument('--fc2_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
                         default=1024)
     parser.add_argument('--fc1_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
@@ -43,11 +43,11 @@ def get_args(jupyter=False):
 
     # Network
     parser.add_argument('--pointnet_fc_ls', help='a parameter list for fully connected layers. \
-    First number is the feature number after feature extraction', type=str, default="1024-512")
-    parser.add_argument('--dp_fc1_flag', help='dropout for fc1', type=boolean_string, default=True)
+    First number is the feature number after feature extraction', type=str, default="1024-512-256")
+    parser.add_argument('--dp_fc1_flag', help='dropout for fc1', type=boolean_string, default=False)
 
     # data 
-    parser.add_argument('--shift_range', help='shift range', type=float, default=0.1)
+    parser.add_argument('--shift_range', help='shift range', type=float, default=0)
     parser.add_argument('--PNB', help='points number for each image', type=int, default=7000)
     parser.add_argument('--sub_shuffle', help='if shuffle the subimage after sampling using PNB', type=boolean_string, default=True)
     parser.add_argument('--total_shuffle', help='if shuffle the total points of the whole image', type=boolean_string, default=True)
