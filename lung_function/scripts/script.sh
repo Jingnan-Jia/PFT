@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=gpu-long
-#SBATCH --exclude=node853
+##SBATCH --exclude=node853
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-gpu=6
 ##SBATCH -t 7-00:00:00
@@ -69,4 +69,4 @@ echo "Hello, I am back in $(hostname) to run the code"
 # shellcheck disable=SC2046
 idx=0
 export CUDA_VISIBLE_DEVICES=$idx
-stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --ct_sp='ori' --net='pointnet_reg' --PNB=14000 --shift_range=0 --batch_size=10 --loss='mse' --mode='train' --pointnet_fc_ls="1024-512-256" --input_mode='vessel_skeleton_pcd' --mat_diff_loss_scale=0.0 --epochs=500 --workers=6 --test_pat='random_as_ori' --target='FVC-DLCO_SB-FEV1-TLC_He' --remark="all "
+stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --ct_sp='ori' --net='pointnet_reg' --PNB=56000 --shift_range=0 --batch_size=10 --loss='mse' --mode='train' --pointnet_fc_ls="1024-512-256" --input_mode='vessel_skeleton_pcd' --mat_diff_loss_scale=0.0 --epochs=500 --workers=6 --test_pat='random_as_ori' --target='FVC-DLCO_SB-FEV1-TLC_He' --remark="all, 56k "
