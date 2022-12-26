@@ -19,22 +19,22 @@ def get_args(jupyter=False):
     parser.add_argument('--net', choices=('vgg11_3d','vit3', 'vgg16_3d','vgg19_3d', 'r3d_resnet', 'cnn3fc1', 'cnn4fc2',
                                           'cnn5fc2', 'cnn6fc2', 'cnn2fc1', 'cnn3fc2', 'r3d_18', 'slow_r50',
                                           'slowfast_r50', 'x3d_xs', 'x3d_s', 'x3d_m', 'x3d_l', 'pointnet_reg', 'pointnet2_reg'),# 'r2plus1d_18' out of memory
-                        help='network name', type=str, default='pointnet_reg')
+                        help='network name', type=str, default='pointnet2_reg')
     parser.add_argument('--fc2_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
                         default=1024)
     parser.add_argument('--fc1_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
                         default=1024)
     parser.add_argument('--pointnet_fc_ls', help='a parameter list for fully connected layers. \
     First number is the feature number after feature extraction', type=str, default="1024-512-256")
-    parser.add_argument('--dp_fc1_flag', help='dropout for fc1', type=boolean_string, default=False)
+    parser.add_argument('--dp_fc1_flag', help='dropout for fc1', type=boolean_string, default=True)
 
     # data 
     parser.add_argument('--shift_range', help='shift range', type=float, default=0)
-    parser.add_argument('--PNB', help='points number for each image', type=int, default=7000)
+    parser.add_argument('--PNB', help='points number for each image', type=int, default=14000)
     parser.add_argument('--sub_shuffle', help='if shuffle the subimage after sampling using PNB', type=boolean_string, default=True)
     parser.add_argument('--total_shuffle', help='if shuffle the total points of the whole image', type=boolean_string, default=True)
-    parser.add_argument('--position_center_norm', help='if use the relative coordinates: center point is 0,0,0', type=boolean_string, default=False)
-    parser.add_argument('--batch_size', help='batch_size', type=int, default=20)
+    parser.add_argument('--position_center_norm', help='if use the relative coordinates: center point is 0,0,0', type=boolean_string, default=True)
+    parser.add_argument('--batch_size', help='batch_size', type=int, default=10)
     parser.add_argument('--ct_sp', help='space', type=str, choices=('ori', '1.0', '1.5'), default='ori')
     parser.add_argument('--kfold_seed', help='kfold_seed', type=int, default=711)
     parser.add_argument('--test_pat', help='testing patients', choices=('zhiwei77', 'random', 'random_as_ori'), type=str, default='random_as_ori')
@@ -59,8 +59,8 @@ def get_args(jupyter=False):
     parser.add_argument('--fold', choices=(1, 2, 3, 4), help='1 to 4', type=int, default=1)
     parser.add_argument('--valid_period', help='how many epochs between 2 validation', type=int, default=5)
     parser.add_argument('--loss', choices=('mse', 'mae', 'smooth_mae', 'mse+mae', 'msehigher', 'mse_regular'), help='mode', type=str,
-                        default='mse_regular')
-    parser.add_argument('--mat_diff_loss_scale', help='scale for another loss', type=float, default=0.001)
+                        default='mse')
+    parser.add_argument('--mat_diff_loss_scale', help='scale for another loss', type=float, default=0)
     parser.add_argument('--pretrained', choices=(1, 0), help='pretrained or not', type=int, default=0)
     parser.add_argument('--epochs', help='total epochs', type=int, default=500)
     parser.add_argument('--weight_decay', help='L2 regularization', type=float,
