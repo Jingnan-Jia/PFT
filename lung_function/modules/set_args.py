@@ -19,7 +19,7 @@ def get_args(jupyter=False):
     parser.add_argument('--net', choices=('vgg11_3d','vit3', 'vgg16_3d','vgg19_3d', 'r3d_resnet', 'cnn3fc1', 'cnn4fc2',
                                           'cnn5fc2', 'cnn6fc2', 'cnn2fc1', 'cnn3fc2', 'r3d_18', 'slow_r50',
                                           'slowfast_r50', 'x3d_xs', 'x3d_s', 'x3d_m', 'x3d_l', 'pointnet_reg', 'pointnet2_reg'),# 'r2plus1d_18' out of memory
-                        help='network name', type=str, default='pointnet2_reg')
+                        help='network name', type=str, default='pointnet_reg')
     parser.add_argument('--fc2_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
                         default=1024)
     parser.add_argument('--fc1_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
@@ -30,7 +30,7 @@ def get_args(jupyter=False):
 
     # data 
     parser.add_argument('--shift_range', help='shift range', type=float, default=0)
-    parser.add_argument('--PNB', help='points number for each image', type=int, default=14000)
+    parser.add_argument('--PNB', help='points number for each image', type=int, default=7000)
     parser.add_argument('--sub_shuffle', help='if shuffle the subimage after sampling using PNB', type=boolean_string, default=True)
     parser.add_argument('--total_shuffle', help='if shuffle the total points of the whole image', type=boolean_string, default=True)
     parser.add_argument('--position_center_norm', help='if use the relative coordinates: center point is 0,0,0', type=boolean_string, default=False)
@@ -59,7 +59,7 @@ def get_args(jupyter=False):
     parser.add_argument('--fold', choices=(1, 2, 3, 4), help='1 to 4', type=int, default=1)
     parser.add_argument('--valid_period', help='how many epochs between 2 validation', type=int, default=5)
     parser.add_argument('--loss', choices=('mse', 'mae', 'smooth_mae', 'mse+mae', 'msehigher', 'mse_regular'), help='mode', type=str,
-                        default='mse')
+                        default='mse_regular')
     parser.add_argument('--mat_diff_loss_scale', help='scale for another loss', type=float, default=0.001)
     parser.add_argument('--pretrained', choices=(1, 0), help='pretrained or not', type=int, default=0)
     parser.add_argument('--epochs', help='total epochs', type=int, default=500)
@@ -71,7 +71,7 @@ def get_args(jupyter=False):
     # others
     parser.add_argument('--outfile', help='output file when running by script instead of pycharm', type=str)
     parser.add_argument('--hostname', help='hostname of the server', type=str)
-    parser.add_argument('--remark', help='comments on this experiment', type=str, default='14000, pointnet2')
+    parser.add_argument('--remark', help='comments on this experiment', type=str, default='mse_regular, 0.001')
     parser.add_argument('--jobid', help='slurm job_id', type=int, default=0)
     # For jupyter notebooks
     if jupyter:
