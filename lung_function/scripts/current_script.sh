@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=gpu-long
-##SBATCH --exclude=node853
+#SBATCH --exclude=node853
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-gpu=6
 ##SBATCH -t 7-00:00:00
