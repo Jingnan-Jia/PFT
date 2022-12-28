@@ -4,12 +4,12 @@ from pointnet2_utils import PointNetSetAbstraction
 
 
 class get_model(nn.Module):
-    def __init__(self,num_class):
+    def __init__(self, num_class, npoint_base=512, radius_base=40, nsample_base=64):
         super(get_model, self).__init__()
         in_channel = 4
 
-        self.sa1 = PointNetSetAbstraction(npoint=512, radius=20, nsample=64, in_channel=in_channel, mlp=[64, 64, 128], group_all=False)
-        self.sa2 = PointNetSetAbstraction(npoint=128, radius=40, nsample=128, in_channel=128 + 3, mlp=[128, 128, 256], group_all=False)
+        self.sa1 = PointNetSetAbstraction(npoint=npoint_base, radius=radius_base, nsample=nsample_base, in_channel= in_channel, mlp=[64, 64, 128], group_all=False)
+        self.sa2 = PointNetSetAbstraction(npoint=npoint_base // 4, radius=radius_base * 2, nsample=nsample_base * 2, in_channel=128 + 3, mlp=[128, 128, 256], group_all=False)
         self.sa3 = PointNetSetAbstraction(npoint=None, radius=None, nsample=None, in_channel=256 + 3, mlp=[256, 512, 1024], group_all=True)
         self.fc1 = nn.Linear(1024, 512)
         self.bn1 = nn.BatchNorm1d(512)

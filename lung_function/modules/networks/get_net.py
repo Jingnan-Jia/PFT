@@ -22,7 +22,8 @@ def get_net_3d(name: str,
                pretrained=True, 
                pointnet_fc_ls=None,
                loss=None,
-               dp_fc1_flag=False):
+               dp_fc1_flag=False, 
+               args=None):
     level_node = 0
     if 'pointnet' in name:
         # if name=='pointnet_reg':
@@ -35,7 +36,7 @@ def get_net_3d(name: str,
 
             net = pcd_model.get_model(nb_cls, pointnet_fc_ls, loss, dp_fc1_flag)
         else:
-            net = pcd_model.get_model(nb_cls)
+            net = pcd_model.get_model(nb_cls, npoint_base=args.npoint_base, radius_base=args.radius_base, nsample_base=args.nsample_base)
         net.apply(inplace_relu)
         # elif name=='pointnet2_reg':
 
