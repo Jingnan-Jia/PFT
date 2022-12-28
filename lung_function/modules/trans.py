@@ -75,7 +75,7 @@ class ShiftCoordinated(MapTransform):
         return data
 
 
-class SampleShuffled(MapTransform):
+class SampleShuffled(MapTransform, RandomizableTransform):
     """
     Randomly shuffle the location data.
     """
@@ -88,6 +88,8 @@ class SampleShuffled(MapTransform):
         self.sub_shuffle = sub_shuffle
 
     def __call__(self, data: TransInOut) -> TransInOut:
+        print("running random shuffling")
+
         for key in self.keys:  
             if self.total_shuffle:  # shuffle all points
                 np.random.shuffle(data[key])    # shuffle data inplace
