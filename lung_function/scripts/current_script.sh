@@ -69,4 +69,4 @@ echo "Hello, I am back in $(hostname) to run the code"
 # shellcheck disable=SC2046
 idx=0
 export CUDA_VISIBLE_DEVICES=$idx
-stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --ct_sp='ori' --net='pointnet2_reg' --PNB=28000 --npoint_base=256 --radius_base=40 --nsample_base=64 --batch_size=10 --mode='train' --epochs=500 --workers=6 --test_pat='random_as_ori' --target='FVC-DLCO_SB-FEV1-TLC_He' --remark="npoint_base=256, correct random shuffle"
+stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --ct_sp='ori' --net='pointnet2_reg' --PNB=28000 --npoint_base=1024 --radius_base=40 --nsample_base=64 --batch_size=10 --mode='train' --epochs=500 --workers=6 --test_pat='random_as_ori' --target='FVC-DLCO_SB-FEV1-TLC_He' --remark="npoint_base=1024, correct random shuffle"
