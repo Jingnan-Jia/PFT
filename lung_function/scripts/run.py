@@ -232,7 +232,7 @@ class Run:
                 a = copy.deepcopy(data['lung_mask'])
                 a[a!=2] = 0
                 batch_x = batch_x * a
-            elif args.inputmode == 'ct_right':  # 1 is right
+            elif args.input_mode == 'ct_right':  # 1 is right
                 a = copy.deepcopy(data['lung_mask'])
                 a[a!=1] = 0
                 batch_x = batch_x * a
