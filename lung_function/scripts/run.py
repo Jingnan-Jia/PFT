@@ -129,7 +129,7 @@ class Run:
         log_param('net_parameters_M', net_parameters)
 
         self.data_dt = all_loaders(
-            self.mypath.data_dir, self.mypath.label_fpath, args, nb=2)
+            self.mypath.data_dir, self.mypath.label_fpath, args)
         self.loss_fun = get_loss(
             args.loss, mat_diff_loss_scale=args.mat_diff_loss_scale)
         self.opt = torch.optim.Adam(
