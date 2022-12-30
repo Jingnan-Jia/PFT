@@ -24,7 +24,7 @@ from argparse import Namespace
 import functools
 import thop
 import os
-
+import copy
 
 from lung_function.modules import provider
 from lung_function.modules.compute_metrics import icc, metrics
@@ -129,7 +129,7 @@ class Run:
         log_param('net_parameters_M', net_parameters)
 
         self.data_dt = all_loaders(
-            self.mypath.data_dir, self.mypath.label_fpath, args)
+            self.mypath.data_dir, self.mypath.label_fpath, args, nb=2)
         self.loss_fun = get_loss(
             args.loss, mat_diff_loss_scale=args.mat_diff_loss_scale)
         self.opt = torch.optim.Adam(
@@ -208,10 +208,9 @@ class Run:
             if epoch_idx < 3:  # only show first 3 epochs' data loading time
                 t1 = time.time()
                 log_metric('TLoad', t1 - t0, data_idx + epoch_idx * len(dataloader))
-            if args.input_mode == 'vessel':
-                key = 'vessel'
-            elif args.input_mode == 'vessel_skeleton_pcd':
-                key = 'vessel_skeleton_pcd'
+            key = args.input_mode
+
+            if args.input_mode == 'vessel_skeleton_pcd':
                 points = data[key].data.numpy()
                 if points.shape[0] == 1:  # batch size=1
                     points = np.concatenate([points, points])
@@ -227,12 +226,19 @@ class Run:
                 points = torch.Tensor(points)
                 points = points.transpose(2, 1)
                 data[key] = points
-            elif 'ct_masked_by_vessel' in args.input_mode:
-                key = args.input_mode
 
+            batch_x = data[key]  # n, z, y, x
+            if args.input_mode == 'ct_left':  # 2 is left
+                a = copy.deepcopy(data['lung_mask'])
+                a[a!=2] = 0
+                batch_x = batch_x * a
+            elif args.inputmode == 'ct_right':  # 1 is right
+                a = copy.deepcopy(data['lung_mask'])
+                a[a!=1] = 0
+                batch_x = batch_x * a
             else:
-                key = 'image'
-            batch_x = data[key].to(self.device)
+                pass
+            batch_x = batch_x.to(self.device)  # n, z, y, x
             batch_y = data['label'].to(self.device)
 
             if not self.flops_done:  # only calculate teh macs and params once

@@ -54,8 +54,8 @@ def xformd(mode, args, pad_truncated_dir='tmp'):
     PNB = args.PNB
 
     post_pad_size = [int(i * pad_ratio) for i in [z_size, y_size, x_size]]
+    keys = (inputmode, )
     if inputmode == 'vessel_skeleton_pcd':
-        keys = ('vessel_skeleton_pcd', )
         xforms = [LoadPointCloud(keys=keys, target=target, position_center_norm=args.position_center_norm),
                   SampleShuffled(
                       keys=keys, PNB=PNB, total_shuffle=args.total_shuffle, sub_shuffle=args.sub_shuffle),
@@ -66,13 +66,8 @@ def xformd(mode, args, pad_truncated_dir='tmp'):
 
     else:
         if inputmode == 'vessel':
-            keys = ('vessel', )
             min_value, max_value = 0, 1
-        elif inputmode == 'image':
-            keys = ('image', )
-            min_value, max_value = -1500, 1500
-        elif 'ct_masked_by_vessel' in inputmode:
-            keys = (inputmode, )
+        elif 'ct' in inputmode:
             min_value, max_value = -1500, 1500
         else:
             raise Exception(f"wrong input mode: {inputmode}")
@@ -213,7 +208,7 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
                 if args.input_mode == "vessel":
                     d['fpath'] = data_dir + '/' + \
                         d['subjectID'] + '_GcVessel.nii.gz'
-                elif args.input_mode == "ct":
+                elif args.input_mode in ["ct", 'ct_left', 'ct_right']:
                     d['fpath'] = data_dir + '/' + d['subjectID'] + '.nii.gz'
                 elif "ct_masked_by_vessel" in args.input_mode:  # maybe ct_masked_by_vessel_lilated1
                     d['fpath'] = data_dir + '/' + d['subjectID'] + '.nii.gz'

@@ -20,8 +20,8 @@ def get_args(jupyter=False):
     parser.add_argument('--net', choices=('vgg11_3d', 'vit3', 'vgg16_3d', 'vgg19_3d', 'r3d_resnet', 'cnn3fc1', 'cnn4fc2',
                                           'cnn5fc2', 'cnn6fc2', 'cnn2fc1', 'cnn3fc2', 'r3d_18', 'slow_r50',
                                           'slowfast_r50', 'x3d_xs', 'x3d_s', 'x3d_m', 'x3d_l', 'pointnet_reg',
-                                          'pointnet2_reg'),  # 'r2plus1d_18' out of memory
-                        help='network name', type=str, default='pointnet2_reg')
+                                          'vgg11_3d'),  # 'r2plus1d_18' out of memory
+                        help='network name', type=str, default='vgg11_3d')
     parser.add_argument('--fc2_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
                         default=1024)
     parser.add_argument('--fc1_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
@@ -49,21 +49,21 @@ def get_args(jupyter=False):
     parser.add_argument('--position_center_norm',
                         help='if use the relative coordinates: center point is 0,0,0', type=boolean_string, default=True)
     parser.add_argument('--batch_size', help='batch_size',
-                        type=int, default=10)
+                        type=int, default=1)
     parser.add_argument('--ct_sp', help='space', type=str,
-                        choices=('ori', '1.0', '1.5'), default='ori')
+                        choices=('ori', '1.0', '1.5'), default='1.5')
     parser.add_argument('--kfold_seed', help='kfold_seed',
                         type=int, default=711)
     parser.add_argument('--test_pat', help='testing patients', choices=(
         'zhiwei77', 'random', 'random_as_ori'), type=str, default='random_as_ori')
-    parser.add_argument('--input_mode', help='what to input', choices=('ct', 'vessel', 'ct_masked_by_vessel', 'vessel_skeleton_pcd', 'ct_masked_by_vessel_dilated1',
-                                                                       'ct_masked_by_vessel_dilated2', 'ct_masked_by_vessel_dilated3', 'ct_masked_by_vessel_dilated4'), type=str, default='vessel_skeleton_pcd')
+    parser.add_argument('--input_mode', help='what to input', choices=('ct', 'ct_left', 'ct_right', 'vessel', 'ct_masked_by_vessel', 'vessel_skeleton_pcd', 'ct_masked_by_vessel_dilated1',
+                                                                       'ct_masked_by_vessel_dilated2', 'ct_masked_by_vessel_dilated3', 'ct_masked_by_vessel_dilated4'), type=str, default='ct_left')
     parser.add_argument('--target', help='target prediction', type=str,
                         default='FVC-DLCO_SB-FEV1-TLC_He')  # FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight--DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred
     parser.add_argument(
         '--workers', help='number of workers for dataloader', type=int, default=6)
     parser.add_argument('--crop_foreground', help='crop_foreground',
-                        type=boolean_string, default='False')
+                        type=boolean_string, default='True')
     parser.add_argument(
         '--z_size', help='length of patch along z axil ', type=int, default=240)
     parser.add_argument(

@@ -48,7 +48,7 @@ class SaveDatad(MapTransform):
             if self.crop_foreground:
                 if key=='vessel':
                     fpath_lungmask = fpath.replace('_GcVessel.nii.gz', '_LungMask.nii.gz')
-                elif key=='image':
+                elif 'ct' in key:
                     fpath_lungmask = fpath.replace('.nii.gz', '_LungMask.nii.gz')
                 else:
                     raise Exception(f"please input proper key")
@@ -88,8 +88,7 @@ class SampleShuffled(MapTransform, RandomizableTransform):
         self.sub_shuffle = sub_shuffle
 
     def __call__(self, data: TransInOut) -> TransInOut:
-        print("running random shuffling")
-
+        print("running random shu")
         for key in self.keys:  
             if self.total_shuffle:  # shuffle all points
                 np.random.shuffle(data[key])    # shuffle data inplace
