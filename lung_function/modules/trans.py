@@ -158,6 +158,15 @@ class LoadDatad(MapTransform):
         fpath = data['fpath']
         print(f"loading {fpath}")
         x, ori, sp = load_itk(fpath, require_ori_sp=True)  # shape order: z, y, x
+        if 'ct_masked_by_torso' == self.inputmode:
+            torso_mask = load_itk(fpath.replace('.nii.gz', '_Torso.nii.gz')) 
+            x += 1500  # shift all values
+            try:
+                x = x * torso_mask
+            except Exception as e:
+                print(fpath)
+            x -= 1500  # shift all values
+
         if 'ct_masked_by_vessel' in self.inputmode:
             vessel_mask, vessel_ori, vessel_sp = load_itk(fpath.replace('.nii.gz', '_GcVessel.nii.gz'), require_ori_sp=True) 
             if self.inputmode[-1] in ['1', '2', '3', '4', '5', '6']:

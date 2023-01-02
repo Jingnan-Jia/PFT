@@ -208,13 +208,11 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
                 if args.input_mode == "vessel":
                     d['fpath'] = data_dir + '/' + \
                         d['subjectID'] + '_GcVessel.nii.gz'
-                elif args.input_mode in ["ct", 'ct_left', 'ct_right']:
-                    d['fpath'] = data_dir + '/' + d['subjectID'] + '.nii.gz'
-                elif "ct_masked_by_vessel" in args.input_mode:  # maybe ct_masked_by_vessel_lilated1
+                else:
                     d['fpath'] = data_dir + '/' + d['subjectID'] + '.nii.gz'
 
-                else:
-                    raise Exception(f"wrong input mode: {args.input_mode}")
+                    # # raise Exception(f"wrong input mode: {args.input_mode}")
+                    # pass
             else:  # TODO: not implemented yet
                 if args.input_mode == "vessel":
                     d['fpath'] = pad_truncated_dir + '/' + \
