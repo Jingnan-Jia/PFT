@@ -34,6 +34,7 @@ from lung_function.modules.networks import get_net_3d
 from lung_function.modules.path import PFTPath
 from lung_function.modules.set_args import get_args
 from lung_function.modules.tool import record_1st, dec_record_cgpu, retrive_run
+from lung_function.modules.trans import batch_bbox2_3D
 import sys
 sys.path.append("../modules/networks/models_pcd")
 
@@ -118,7 +119,7 @@ class Run:
         self.pointnet_fc_ls = [int(i) for i in args.pointnet_fc_ls.split('-')]
         self.net = get_net_3d(name=args.net, nb_cls=len(self.target), image_size=args.x_size,
                               pretrained=args.pretrained_imgnet, pointnet_fc_ls=self.pointnet_fc_ls, loss=args.loss,
-                              dp_fc1_flag = args.dp_fc1_flag, args=args)  # output FVC and FEV1
+                              dp_fc1_flag=args.dp_fc1_flag, args=args)  # output FVC and FEV1
         self.fold = args.fold
         self.flops_done = False
 
@@ -127,7 +128,6 @@ class Run:
         net_parameters = count_parameters(self.net)
         net_parameters = str(round(net_parameters / 1e6, 2))
         log_param('net_parameters_M', net_parameters)
-
 
         self.loss_fun = get_loss(
             args.loss, mat_diff_loss_scale=args.mat_diff_loss_scale)
@@ -160,7 +160,7 @@ class Run:
                 if '-' in args.pretrained_id:
                     pretrained_ids = args.pretrained_id.split('-')
                     args.pretrained_id = pretrained_ids[fold]
-                    
+
                 pretrained_path = PFTPath(
                     args.pretrained_id, check_id_dir=False, space=args.ct_sp)
                 ckpt = torch.load(pretrained_path.model_fpath,
@@ -213,7 +213,8 @@ class Run:
             data_idx += 1
             if epoch_idx < 3:  # only show first 3 epochs' data loading time
                 t1 = time.time()
-                log_metric('TLoad', t1 - t0, data_idx + epoch_idx * len(dataloader))
+                log_metric('TLoad', t1 - t0, data_idx +
+                           epoch_idx * len(dataloader))
             key = args.input_mode
 
             if args.input_mode == 'vessel_skeleton_pcd':
@@ -233,15 +234,36 @@ class Run:
                 points = points.transpose(2, 1)
                 data[key] = points
 
-            batch_x = data[key]  # n, z, y, x
+            batch_x = data[key]  # n, c, z, y, x
+            n, c, z, y, x = batch_x.shape
             if args.input_mode == 'ct_left':  # 2 is left
                 a = copy.deepcopy(data['lung_mask'])
-                a[a!=2] = 0
+                a[a != 2] = 0
                 batch_x = batch_x * a
             elif args.input_mode == 'ct_right':  # 1 is right
                 a = copy.deepcopy(data['lung_mask'])
-                a[a!=1] = 0
+                a[a != 1] = 0
                 batch_x = batch_x * a
+            elif args.input_mode in ('ct_upper', 'ct_lower', 'ct_front', 'ct_back'):
+                lung_mask = copy.deepcopy(data['lung_mask'])
+                lung_mask[lung_mask>0] = 1
+                if 'in_lung' in args.input_mode:  # only keep values in lung
+                    batch_x += 1  # shift lowest value from -1 to 0
+                    batch_x = batch_x * lung_mask  # masked by lung
+                    batch_x -= 1
+
+                z_bottom, z_top, y_bottom, y_top, x_bottom, x_top = batch_bbox2_3D(lung_mask)
+                z_mid, y_mid, x_mid = (z_bottom + z_top)//2, (y_bottom + y_top)//2, (x_bottom + x_top)//2
+                for idx in range(batch_x.shape[0]):
+                    if args.input_mode == 'ct_upper':
+                        batch_x[idx, :, :z_mid[idx], :, :] = -1  # remove bottom
+                    elif args.input_mode == 'ct_lower':
+                        batch_x[idx, :, z_mid[idx]:, :, :] = -1  # remove upper
+                    elif args.input_mode == 'ct_back':
+                        batch_x[idx, :, :, y_mid[idx]:, :] = -1  # remove front, keep back
+                    elif args.input_mode == 'ct_front':
+                        batch_x[idx, :, :, :y_mid[idx], :] = -1  # remove back, keep front
+
             else:
                 pass
             batch_x = batch_x.to(self.device)  # n, z, y, x
@@ -516,11 +538,9 @@ def main():
             tmp_args_dt['fold'] = 'all'
             log_params(tmp_args_dt)
 
-
             all_folds_id_ls = []
             for fold in [1, 2, 3, 4]:
                 # write super parameters from set_args.py to record file.
-
 
                 id = record_1st(RECORD_FPATH)
                 all_folds_id_ls.append(id)

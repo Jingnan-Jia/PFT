@@ -214,6 +214,26 @@ class LoadDatad(MapTransform):
 
         return new_data
 
+def batch_bbox2_3D(batch_img):
+    """img.shape: n,1,z,y,z
+
+    Args:
+        img (_type_): _description_
+    """
+    z_bottom_ls, z_top_ls, y_bottom_ls, y_top_ls, x_bottom_ls, x_top_ls = [],[],[],[],[],[]
+    for im in batch_img:
+        zb,zt,yb,yt,xb,xt = bbox2_3D(im[0])
+        z_bottom_ls.append(zb)
+        z_top_ls.append(zt)
+        y_bottom_ls.append(yb)
+        y_top_ls.append(yt)
+        x_bottom_ls.append(xb)
+        x_top_ls.append(xt)
+        
+    z_bottom_ls, z_top_ls, y_bottom_ls, y_top_ls, x_bottom_ls, x_top_ls = map(np.array,[z_bottom_ls, z_top_ls, y_bottom_ls, y_top_ls, x_bottom_ls, x_top_ls])
+    return z_bottom_ls, z_top_ls, y_bottom_ls, y_top_ls, x_bottom_ls, x_top_ls
+
+
 
 def bbox2_3D(img):
 
