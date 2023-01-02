@@ -177,7 +177,7 @@ class Run:
                 self.net.load_state_dict(model, strict=False)
                 # move the new initialized layers to GPU
                 self.net = self.net.to(self.device)
-                
+
         self.data_dt = all_loaders(
             self.mypath.data_dir, self.mypath.label_fpath, args)
 

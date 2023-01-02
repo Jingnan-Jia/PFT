@@ -62,7 +62,7 @@ def get_args(jupyter=False):
                         default='FVC-DLCOc_SB-FEV1-TLC_He')  # FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight--DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred
     parser.add_argument(
         '--workers', help='number of workers for dataloader', type=int, default=6)
-    parser.add_argument('--crop_foreground', help='crop_foreground',
+    parser.add_argument('--crop_foreground', help='load lung mask, apply RandomCropForegroundd',
                         type=boolean_string, default='True')
     parser.add_argument(
         '--z_size', help='length of patch along z axil ', type=int, default=240)
