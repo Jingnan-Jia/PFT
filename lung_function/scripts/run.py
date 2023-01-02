@@ -128,8 +128,7 @@ class Run:
         net_parameters = str(round(net_parameters / 1e6, 2))
         log_param('net_parameters_M', net_parameters)
 
-        self.data_dt = all_loaders(
-            self.mypath.data_dir, self.mypath.label_fpath, args)
+
         self.loss_fun = get_loss(
             args.loss, mat_diff_loss_scale=args.mat_diff_loss_scale)
         self.opt = torch.optim.Adam(
@@ -158,6 +157,10 @@ class Run:
                 print(f"use the pretrained model from {pretrained_model_path}")
 
             else:
+                if '-' in args.pretrained_id:
+                    pretrained_ids = args.pretrained_id.split('-')
+                    args.pretrained_id = pretrained_ids[fold]
+                    
                 pretrained_path = PFTPath(
                     args.pretrained_id, check_id_dir=False, space=args.ct_sp)
                 ckpt = torch.load(pretrained_path.model_fpath,
@@ -174,6 +177,9 @@ class Run:
                 self.net.load_state_dict(model, strict=False)
                 # move the new initialized layers to GPU
                 self.net = self.net.to(self.device)
+                
+        self.data_dt = all_loaders(
+            self.mypath.data_dir, self.mypath.label_fpath, args)
 
         self.BestMetricDt = {'trainLossEpochBest': 1000,
                              # 'trainnoaugLossEpochBest': 1000,
@@ -510,16 +516,11 @@ def main():
             tmp_args_dt['fold'] = 'all'
             log_params(tmp_args_dt)
 
-            if '-' in args.pretrained_id:
-                pretrained_ids = args.pretrained_id.split('-')
-            else:
-                pretrained_ids = []
 
             all_folds_id_ls = []
             for fold in [1, 2, 3, 4]:
                 # write super parameters from set_args.py to record file.
-                if len(pretrained_ids):
-                    args.pretrained_id = pretrained_ids[fold-1]
+
 
                 id = record_1st(RECORD_FPATH)
                 all_folds_id_ls.append(id)

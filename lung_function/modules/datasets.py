@@ -87,8 +87,8 @@ def xformd(mode, args, pad_truncated_dir='tmp'):
                     keys=keys[1], spatial_size=post_pad_size, mode='constant', constant_values=0))
             xforms.append(ScaleIntensityRanged(
                 keys=keys[0], a_min=min_value, a_max=max_value, b_min=-1, b_max=1, clip=True))
-            xforms.append(SaveDatad(
-                keys=keys[0], pad_truncated_dir=pad_truncated_dir, crop_foreground=crop_foreground, inputmode=inputmode))
+            # xforms.append(SaveDatad(
+            #     keys=keys[0], pad_truncated_dir=pad_truncated_dir, crop_foreground=crop_foreground, inputmode=inputmode))
         else:  # TODO: not implemented yet
             xforms = [LoadDatad(
                 target=target, crop_foreground=crop_foreground), AddChanneld(keys=keys)]

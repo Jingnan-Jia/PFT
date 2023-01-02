@@ -49,7 +49,7 @@ def get_args(jupyter=False):
     parser.add_argument('--position_center_norm',
                         help='if use the relative coordinates: center point is 0,0,0', type=boolean_string, default=True)
     parser.add_argument('--batch_size', help='batch_size',
-                        type=int, default=1)
+                        type=int, default=5)
     parser.add_argument('--ct_sp', help='space', type=str,
                         choices=('ori', '1.0', '1.5'), default='1.5')
     parser.add_argument('--kfold_seed', help='kfold_seed',
@@ -59,7 +59,7 @@ def get_args(jupyter=False):
     parser.add_argument('--input_mode', help='what to input', choices=('ct', 'ct_left', 'ct_right', 'vessel', 'ct_masked_by_vessel', 'vessel_skeleton_pcd', 'ct_masked_by_vessel_dilated1',
                                                                        'ct_masked_by_vessel_dilated2', 'ct_masked_by_vessel_dilated3', 'ct_masked_by_vessel_dilated4'), type=str, default='ct_left')
     parser.add_argument('--target', help='target prediction', type=str,
-                        default='FVC-DLCO_SB-FEV1-TLC_He')  # FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight--DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred
+                        default='FVC-DLCOc_SB-FEV1-TLC_He')  # FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight--DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred
     parser.add_argument(
         '--workers', help='number of workers for dataloader', type=int, default=6)
     parser.add_argument('--crop_foreground', help='crop_foreground',
@@ -77,7 +77,7 @@ def get_args(jupyter=False):
     parser.add_argument('--mode', choices=('train', 'infer',
                         'continue_train'), help='mode', type=str, default='train')
     parser.add_argument('--pretrained_id', help='id used for inference, or continue_train',
-                        type=str, default="0")  # SSc-852-853-854-855, 1504-1505-1510-1515
+                        type=str, default="SSc-852-853-854-855")  # SSc-852-853-854-855, 1504-1505-1510-1515
     # parser.add_argument('--reload_jobid', help='jobid used for inference, or continue_train', type=int, default=0)
     parser.add_argument('--pretrained_imgnet', help='if pretrained from imagenet',
                         type=boolean_string, default='False')
