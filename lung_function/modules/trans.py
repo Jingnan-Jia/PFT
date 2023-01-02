@@ -134,7 +134,7 @@ def convertfpath(ori_path):
     else:
         return ori_path.replace('.nii.gz', '_LungMask.nii.gz')
 
-        
+
 class LoadDatad(MapTransform):
     """Load data. The output image values range from -1500 to 1500.
 
@@ -166,9 +166,14 @@ class LoadDatad(MapTransform):
                     vessel_mask = binary_dilation(vessel_mask)
             # assert np.linalg.norm(ori - vessel_ori) < 1e-6
             assert np.linalg.norm(sp - vessel_sp) < 1e-6
+            # if '6339687' in fpath:
+            #     print(fpath, 'vessel mask multplication')
+            # try:
             x = x * vessel_mask
+            # except ValueError:
+            #     print('yes')
             x[vessel_mask<=0] = -1500  # set non-vessel as -1500
-
+        if 'vessel' in self.inputmode:  # vessel needs to be masked by lung erosion to remove noises at the edges
             lung_fpath = convertfpath(fpath)
             lung_mask = load_itk(lung_fpath, require_ori_sp=False)  # shape order: z, y, x
             lung_mask[lung_mask>0] = 1  # lung mask may include 1 for left lung and 2 for right lung
