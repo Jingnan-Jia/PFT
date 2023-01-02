@@ -128,7 +128,13 @@ class LoadPointCloud(MapTransform):
         return new_data
 
 
+def convertfpath(ori_path):
+    if 'GcVessel' in ori_path:
+        return ori_path.replace('_GcVessel.nii.gz', '_LungMask.nii.gz')
+    else:
+        return ori_path.replace('.nii.gz', '_LungMask.nii.gz')
 
+        
 class LoadDatad(MapTransform):
     """Load data. The output image values range from -1500 to 1500.
 
@@ -162,6 +168,12 @@ class LoadDatad(MapTransform):
             assert np.linalg.norm(sp - vessel_sp) < 1e-6
             x = x * vessel_mask
             x[vessel_mask<=0] = -1500  # set non-vessel as -1500
+
+            lung_fpath = convertfpath(fpath)
+            lung_mask = load_itk(lung_fpath, require_ori_sp=False)  # shape order: z, y, x
+            lung_mask[lung_mask>0] = 1  # lung mask may include 1 for left lung and 2 for right lung
+            x = x * lung_mask
+
             # save_itk(fpath.replace('.nii.gz', '_GcVessel_dilated.nii.gz'), x, ori, sp)
 
         y = np.array([data[i] for i in self.target])
@@ -177,11 +189,7 @@ class LoadDatad(MapTransform):
         #             'image': x.astype(np.float32),
         #             'label': y.astype(np.float32)}
         if self.crop_foreground:
-            def convertfpath(ori_path):
-                if 'GcVessel' in ori_path:
-                    return ori_path.replace('_GcVessel.nii.gz', '_LungMask.nii.gz')
-                else:
-                    return ori_path.replace('.nii.gz', '_LungMask.nii.gz')
+
             lung_fpath = convertfpath(fpath)
             lung_mask = load_itk(lung_fpath, require_ori_sp=False)  # shape order: z, y, x
             new_data['lung_mask'] = lung_mask.astype(np.float32)
