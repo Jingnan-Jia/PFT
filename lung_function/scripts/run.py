@@ -179,7 +179,7 @@ class Run:
                 self.net = self.net.to(self.device)
 
         self.data_dt = all_loaders(
-            self.mypath.data_dir, self.mypath.label_fpath, args)
+            self.mypath.data_dir, self.mypath.label_fpath, args, nb=5)
 
         self.BestMetricDt = {'trainLossEpochBest': 1000,
                              # 'trainnoaugLossEpochBest': 1000,
