@@ -57,7 +57,7 @@ def get_args(jupyter=False):
     parser.add_argument('--test_pat', help='testing patients', choices=(
         'zhiwei77', 'random', 'random_as_ori'), type=str, default='random_as_ori')
     parser.add_argument('--input_mode', help='what to input', choices=('ct', 'ct_left', 'ct_right', 'vessel', 'ct_masked_by_vessel', 'vessel_skeleton_pcd', 'ct_masked_by_vessel_dilated1',
-                                                                       'ct_masked_by_vessel_dilated2', 'ct_masked_by_vessel_dilated3', 'ct_masked_by_vessel_dilated4'), type=str, default='ct_masked_by_vessel_dilated1')
+                                                                       'ct_masked_by_vessel_dilated2', 'ct_masked_by_vessel_dilated3', 'ct_masked_by_vessel_dilated4'), type=str, default='ct')
     parser.add_argument('--target', help='target prediction', type=str,
                         default='FVC-DLCOc_SB-FEV1-TLC_He')  # FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight--DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred
     parser.add_argument(
