@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --partition=gpu-long
 #SBATCH --exclude=node853,node858
-#SBATCH --gres=gpu:2
+#SBATCH --gres=gpu:1
 #SBATCH --cpus-per-gpu=6
 ##SBATCH -t 7-00:00:00
 #SBATCH --mem-per-gpu=120G
@@ -70,5 +70,5 @@ echo "Hello, I am back in $(hostname) to run the code"
 
 
 # shellcheck disable=SC2046
-idx=0; export CUDA_VISIBLE_DEVICES=$idx; stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --pretrained_id='0' --input_mode='vessel' --target='FVC-DLCOc_SB-FEV1-TLC_He' --remark="DLCOc, trained from SSc, background is -1 not 0" &
-idx=1; export CUDA_VISIBLE_DEVICES=$idx; stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --pretrained_id='0' --input_mode='ct_masked_by_vessel' --target='FVC-DLCOc_SB-FEV1-TLC_He' --remark="DLCOc, trained from SSc, background is -1 not 0"
+idx=0; export CUDA_VISIBLE_DEVICES=$idx; stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --pretrained_id='0' --input_mode='ct_masked_by_vessel_dilated4' --target='FVC-DLCOc_SB-FEV1-TLC_He' --remark="DLCOc, trained from SSc, background is -1 not 0"
+# idx=1; export CUDA_VISIBLE_DEVICES=$idx; stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --pretrained_id='0' --input_mode='ct_masked_by_vessel_dilated2' --target='FVC-DLCOc_SB-FEV1-TLC_He' --remark="DLCOc, trained from SSc, background is -1 not 0"
