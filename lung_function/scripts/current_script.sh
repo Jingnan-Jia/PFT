@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --partition=gpu-long
 #SBATCH --exclude=node853,node858
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:2
 #SBATCH --cpus-per-gpu=6
 ##SBATCH -t 7-00:00:00
 #SBATCH --mem-per-gpu=120G
@@ -66,8 +66,9 @@ ENDSSH
 
 echo "Hello, I am back in $(hostname) to run the code"
 
-# shellcheck disable=SC2046
-idx=0
-export CUDA_VISIBLE_DEVICES=$idx
 # stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --ct_sp='ori' --net='pointnet2_reg' --PNB=28000 --npoint_base=1024 --radius_base=60 --nsample_base=64 --batch_size=10 --mode='train' --epochs=500 --workers=6 --test_pat='random_as_ori' --target='FVC-DLCO_SB-FEV1-TLC_He' --remark="radius_base=60, correct random shuffle"
-stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --input_mode='ct_right_in_lung' --target='FVC-DLCOc_SB-FEV1-TLC_He' --remark="ct_right_in_lung, DLCOc, trained from SSc, background is -1 not 0"
+
+
+# shellcheck disable=SC2046
+idx=0 export CUDA_VISIBLE_DEVICES=$idx stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --input_mode='ct_lower' --target='FVC-DLCOc_SB-FEV1-TLC_He' --remark="ct_lower, DLCOc, trained from SSc, background is -1 not 0"
+idx=1 export CUDA_VISIBLE_DEVICES=$idx stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --input_mode='ct_lower_in_lung' --target='FVC-DLCOc_SB-FEV1-TLC_He' --remark="ct_lower_in_lung, DLCOc, trained from SSc, background is -1 not 0"
