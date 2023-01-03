@@ -55,7 +55,7 @@ def get_args(jupyter=False):
     parser.add_argument('--kfold_seed', help='kfold_seed',
                         type=int, default=711)
     parser.add_argument('--test_pat', help='testing patients', choices=(
-        'zhiwei77', 'random', 'random_as_ori'), type=str, default='random_as_ori')
+        'zhiwei77', 'random', 'random_as_ori'), type=str, default='random_as_ori')  # 
     parser.add_argument('--input_mode', help='what to input', choices=('ct', 'ct_masked_by_torso', 'ct_left', 'ct_right','ct_left_in_lung', 'ct_right_in_lung','ct_upper','ct_lower', 'ct_front', 'ct_back','ct_upper_in_lung','ct_lower_in_lung', 'ct_front_in_lung', 'ct_back_in_lung', 'vessel', 'ct_masked_by_vessel', 'vessel_skeleton_pcd', 'ct_masked_by_vessel_dilated1',
                                                                        'ct_masked_by_vessel_dilated2', 'ct_masked_by_vessel_dilated3', 'ct_masked_by_vessel_dilated4'), type=str, default='ct_masked_by_torso')
     parser.add_argument('--target', help='target prediction', type=str,
@@ -77,7 +77,7 @@ def get_args(jupyter=False):
     parser.add_argument('--mode', choices=('train', 'infer',
                         'continue_train'), help='mode', type=str, default='train')
     parser.add_argument('--pretrained_id', help='id used for inference, or continue_train',
-                        type=str, default="SSc-852-853-854-855")  # SSc-852-853-854-855, 1504-1505-1510-1515
+                        type=str, default="0")  # SSc-852-853-854-855, 1504-1505-1510-1515
     # parser.add_argument('--reload_jobid', help='jobid used for inference, or continue_train', type=int, default=0)
     parser.add_argument('--pretrained_imgnet', help='if pretrained from imagenet',
                         type=boolean_string, default='False')
