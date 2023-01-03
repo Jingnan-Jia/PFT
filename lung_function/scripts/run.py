@@ -260,10 +260,10 @@ class Run:
                         batch_x[idx, :, :, y_mid[idx]:, :] = - 1  # remove front, keep back
                     elif args.input_mode == 'ct_front':
                         batch_x[idx, :, :, :y_mid[idx], :] = - 1  # remove back, keep front
-                    elif args.input_mode == 'ct_back':
-                        batch_x[idx, :, :, :, :x_mid[idx]] = - 1  # remove front, keep back
+                    elif args.input_mode == 'ct_left':
+                        batch_x[idx, :, :, :, :x_mid[idx]] = - 1  # remove right
                     else:  # args.input_mode == 'ct_front':
-                        batch_x[idx, :, :, :, x_mid[idx]:] = - 1  # remove back, keep front
+                        batch_x[idx, :, :, :, x_mid[idx]:] = - 1  # remove left
             else:
                 pass
             batch_x = batch_x.to(self.device)  # n, z, y, x
