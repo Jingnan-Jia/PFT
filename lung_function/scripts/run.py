@@ -235,18 +235,15 @@ class Run:
                 data[key] = points
 
             batch_x = data[key]  # n, c, z, y, x
-            n, c, z, y, x = batch_x.shape
-            if args.input_mode == 'ct_left':  # 2 is left
+            if args.input_mode == 'ct_masked_by_lung':
                 a = copy.deepcopy(data['lung_mask'])
-                a[a != 2] = 0
+                a[a > 0] = 1
+                batch_x += 1  # shift lowest value from -1 to 0
                 batch_x = batch_x * a
-            elif args.input_mode == 'ct_right':  # 1 is right
-                a = copy.deepcopy(data['lung_mask'])
-                a[a != 1] = 0
-                batch_x = batch_x * a
-            elif args.input_mode in ('ct_upper', 'ct_lower', 'ct_front', 'ct_back'):
+                batch_x -= 1
+            elif args.input_mode in ('ct_left', 'ct_right', 'ct_upper', 'ct_lower', 'ct_front', 'ct_back'):
                 lung_mask = copy.deepcopy(data['lung_mask'])
-                lung_mask[lung_mask>0] = 1
+                lung_mask[lung_mask > 0] = 1
                 if 'in_lung' in args.input_mode:  # only keep values in lung
                     batch_x += 1  # shift lowest value from -1 to 0
                     batch_x = batch_x * lung_mask  # masked by lung
@@ -256,14 +253,17 @@ class Run:
                 z_mid, y_mid, x_mid = (z_bottom + z_top)//2, (y_bottom + y_top)//2, (x_bottom + x_top)//2
                 for idx in range(batch_x.shape[0]):
                     if args.input_mode == 'ct_upper':
-                        batch_x[idx, :, :z_mid[idx], :, :] = -1  # remove bottom
+                        batch_x[idx, :, :z_mid[idx], :, :] = - 1  # remove bottom
                     elif args.input_mode == 'ct_lower':
-                        batch_x[idx, :, z_mid[idx]:, :, :] = -1  # remove upper
+                        batch_x[idx, :, z_mid[idx]:, :, :] = - 1  # remove upper
                     elif args.input_mode == 'ct_back':
-                        batch_x[idx, :, :, y_mid[idx]:, :] = -1  # remove front, keep back
+                        batch_x[idx, :, :, y_mid[idx]:, :] = - 1  # remove front, keep back
                     elif args.input_mode == 'ct_front':
-                        batch_x[idx, :, :, :y_mid[idx], :] = -1  # remove back, keep front
-
+                        batch_x[idx, :, :, :y_mid[idx], :] = - 1  # remove back, keep front
+                    elif args.input_mode == 'ct_back':
+                        batch_x[idx, :, :, :, :x_mid[idx]] = - 1  # remove front, keep back
+                    else:  # args.input_mode == 'ct_front':
+                        batch_x[idx, :, :, :, x_mid[idx]:] = - 1  # remove back, keep front
             else:
                 pass
             batch_x = batch_x.to(self.device)  # n, z, y, x
