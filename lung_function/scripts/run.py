@@ -241,6 +241,18 @@ class Run:
                 batch_x += 1  # shift lowest value from -1 to 0
                 batch_x = batch_x * a
                 batch_x -= 1
+            elif args.input_mode == 'ct_masked_by_left_lung':
+                a = copy.deepcopy(data['lung_mask'])
+                a[a !=2] = 0
+                batch_x += 1  # shift lowest value from -1 to 0
+                batch_x = batch_x * a
+                batch_x -= 1
+            elif args.input_mode == 'ct_masked_by_right_lung':
+                a = copy.deepcopy(data['lung_mask'])
+                a[a !=1] = 0
+                batch_x += 1  # shift lowest value from -1 to 0
+                batch_x = batch_x * a
+                batch_x -= 1
             elif args.input_mode in ('ct_left', 'ct_right', 'ct_upper', 'ct_lower', 'ct_front', 'ct_back'):
                 lung_mask = copy.deepcopy(data['lung_mask'])
                 lung_mask[lung_mask > 0] = 1
