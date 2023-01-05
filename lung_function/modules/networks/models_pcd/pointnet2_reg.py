@@ -9,8 +9,9 @@ class get_model(nn.Module):
         in_channel = 4
 
         self.sa1 = PointNetSetAbstraction(npoint=npoint_base, radius=radius_base, nsample=nsample_base, in_channel= in_channel, mlp=[64, 64, 128], group_all=False)
-        self.sa2 = PointNetSetAbstraction(npoint=npoint_base // 4, radius=radius_base * 2, nsample=nsample_base * 2, in_channel=128 + 3, mlp=[128, 128, 256], group_all=False)
-        self.sa3 = PointNetSetAbstraction(npoint=None, radius=None, nsample=None, in_channel=256 + 3, mlp=[256, 512, 1024], group_all=True)
+        self.sa2 = PointNetSetAbstraction(npoint=npoint_base // 2, radius=radius_base * 2, nsample=nsample_base * 2, in_channel=128 + 3, mlp=[128, 128, 256], group_all=False)
+        self.sa3 = PointNetSetAbstraction(npoint=npoint_base // 4, radius=radius_base * 4, nsample=nsample_base * 4, in_channel=256 + 3, mlp=[256, 256, 512], group_all=False)
+        self.sa4 = PointNetSetAbstraction(npoint=None, radius=None, nsample=None, in_channel=512 + 3, mlp=[512, 512, 1024], group_all=True)
         self.fc1 = nn.Linear(1024, 512)
         self.bn1 = nn.BatchNorm1d(512)
         self.drop1 = nn.Dropout(0.4)
