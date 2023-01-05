@@ -178,7 +178,7 @@ class Run:
                 # move the new initialized layers to GPU
                 self.net = self.net.to(self.device)
 
-        self.data_dt = all_loaders(self.mypath.data_dir, self.mypath.label_fpath, args, nb=3)
+        self.data_dt = all_loaders(self.mypath.data_dir, self.mypath.label_fpath, args)
 
         self.BestMetricDt = {'trainLossEpochBest': 1000,
                              # 'trainnoaugLossEpochBest': 1000,

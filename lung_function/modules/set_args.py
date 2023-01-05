@@ -38,10 +38,8 @@ def get_args(jupyter=False):
                         type=int, default=64)  # ori = 64
 
     # data
-    parser.add_argument('--shift_range', help='shift range',
-                        type=float, default=0)
-    parser.add_argument(
-        '--PNB', help='points number for each image', type=int, default=28000)
+    parser.add_argument('--shift_range', help='shift range', type=float, default=0)
+    parser.add_argument('--PNB', help='points number for each image', type=int, default=28000)
     parser.add_argument(
         '--repeated_sample', help='if apply repeated sampling to get PNB points?', type=boolean_string, default='False')
     parser.add_argument('--position_center_norm',
