@@ -43,11 +43,13 @@ def get_args(jupyter=False):
     parser.add_argument(
         '--PNB', help='points number for each image', type=int, default=28000)
     parser.add_argument(
-        '--sub_shuffle', help='if shuffle the subimage after sampling using PNB', type=boolean_string, default=True)
+        '--repeated_sample', help='if apply repeated sampling to get PNB points?', type=boolean_string, default='False')
     parser.add_argument(
-        '--total_shuffle', help='if shuffle the total points of the whole image', type=boolean_string, default=True)
+        '--sub_shuffle', help='if shuffle the subimage after sampling using PNB', type=boolean_string, default='True')
+    parser.add_argument(
+        '--total_shuffle', help='if shuffle the total points of the whole image', type=boolean_string, default='True')
     parser.add_argument('--position_center_norm',
-                        help='if use the relative coordinates: center point is 0,0,0', type=boolean_string, default=True)
+                        help='if use the relative coordinates: center point is 0,0,0', type=boolean_string, default='True')
     parser.add_argument('--batch_size', help='batch_size',
                         type=int, default=10)
     parser.add_argument('--ct_sp', help='space', type=str,

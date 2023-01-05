@@ -26,7 +26,9 @@ class get_model(nn.Module):
         l1_xyz, l1_points = self.sa1(xyzr[:,:3,:], xyzr[:,3:4,:])
         l2_xyz, l2_points = self.sa2(l1_xyz, l1_points)
         l3_xyz, l3_points = self.sa3(l2_xyz, l2_points)
-        x = l3_points.view(B, 1024)
+        l4_xyz, l4_points = self.sa3(l3_xyz, l3_points)
+
+        x = l4_points.view(B, 1024)
         x = self.drop1(F.relu(self.bn1(self.fc1(x))))
         x = self.drop2(F.relu(self.bn2(self.fc2(x))))
         x = self.fc3(x)
