@@ -45,7 +45,7 @@ def get_args(jupyter=False):
     parser.add_argument('--position_center_norm',
                         help='if use the relative coordinates: center point is 0,0,0', type=boolean_string, default='True')
     parser.add_argument('--batch_size', help='batch_size',
-                        type=int, default=10)
+                        type=int, default=5)
     parser.add_argument('--ct_sp', help='space', type=str,
                         choices=('ori', '1.0', '1.5'), default='1.5')
     parser.add_argument('--kfold_seed', help='kfold_seed',
