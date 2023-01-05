@@ -79,38 +79,58 @@ class SampleShuffled(MapTransform, RandomizableTransform):
     """
     Randomly shuffle the location data.
     """
-    def __init__(self, keys, PNB, total_shuffle=True, sub_shuffle=True):
+    def __init__(self, keys, PNB, repeated_sample=False):
 
         super().__init__(keys, allow_missing_keys=True)
         assert PNB > 0
         self.PNB = PNB
-        self.total_shuffle = total_shuffle
-        self.sub_shuffle = sub_shuffle
+        self.repeated_sample=repeated_sample
 
     def __call__(self, data: TransInOut) -> TransInOut:
         print("running random shu")
         for key in self.keys:  
-            if self.total_shuffle:  # shuffle all points
-                np.random.shuffle(data[key])    # shuffle data inplace
+            # if self.total_shuffle:  # shuffle all points
+            #     np.random.shuffle(data[key])    # shuffle data inplace
 
-            data[key] = data[key][:self.PNB]  # sample data
+            # if self.repeated_sample:
+            #     tmp_ls = []
+            #     for row in data[key]:  # check three coordinates are integers
+            #         if not row[0]%1 and not row[1]%1 and not row[2]%1:  
+            #             tmp_ls.append(row)
+            #     data[key] = np.array(tmp_ls)
+            #     choice = np.random.choice(len(data[key]), self.PNB, replace=True)
+            #     data[key] = data[key][choice, :]
+            # else:             
+            choice = np.random.choice(len(data[key]), self.PNB, replace=self.repeated_sample)
+            data[key] = data[key][choice]  # sample data
 
-            if self.sub_shuffle:  # shuffle the sub data
-                np.random.shuffle(data[key])    # shuffle data inplace
+            # if self.sub_shuffle:  # shuffle the sub data
+            #     np.random.shuffle(data[key])    # shuffle data inplace
            
         return data
 
 class LoadPointCloud(MapTransform):
-    def __init__(self, keys, target, position_center_norm):
+    def __init__(self, keys, target, position_center_norm, PNB, repeated_sample):
         super().__init__(keys, allow_missing_keys=True)
         self.target = [i.lstrip() for i in target.split('-')]
         self.position_center_norm = position_center_norm
+        self.PNB = PNB
+        self.repeated_sample = repeated_sample
 
 
     def __call__(self, data: TransInOut) -> TransInOut:
         fpath = data['fpath']
         # print(f"loading {fpath}")
         xyzr = pd.read_pickle(fpath)
+        if self.repeated_sample:
+            # remove the interpolated points
+            tmp_ls = []
+            for row in xyzr['data']:  # check three coordinates are integers
+                if not row[0]%1 and not row[1]%1 and not row[2]%1:  
+                    tmp_ls.append(row)
+            xyzr['data'] = np.array(tmp_ls)
+        choice = np.random.choice(len(xyzr['data']), self.PNB, replace=self.repeated_sample)
+        xyzr['data'] = xyzr['data'][choice]  # sample data
 
         xyz_mm = xyzr['data'][:,:3] * xyzr['spacing']  # convert voxel location to physical mm
         if self.position_center_norm:
