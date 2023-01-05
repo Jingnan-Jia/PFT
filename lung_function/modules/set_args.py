@@ -21,7 +21,7 @@ def get_args(jupyter=False):
                                           'cnn5fc2', 'cnn6fc2', 'cnn2fc1', 'cnn3fc2', 'r3d_18', 'slow_r50',
                                           'slowfast_r50', 'x3d_xs', 'x3d_s', 'x3d_m', 'x3d_l', 'pointnet_reg',
                                           'pointnet2_reg'),  # 'r2plus1d_18' out of memory
-                        help='network name', type=str, default='pointnet2_reg')
+                        help='network name', type=str, default='vgg11_3d')
     parser.add_argument('--fc2_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
                         default=1024)
     parser.add_argument('--fc1_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
@@ -49,13 +49,13 @@ def get_args(jupyter=False):
     parser.add_argument('--batch_size', help='batch_size',
                         type=int, default=10)
     parser.add_argument('--ct_sp', help='space', type=str,
-                        choices=('ori', '1.0', '1.5'), default='ori')
+                        choices=('ori', '1.0', '1.5'), default='1.5')
     parser.add_argument('--kfold_seed', help='kfold_seed',
                         type=int, default=711)
     parser.add_argument('--test_pat', help='testing patients', choices=(
         'zhiwei77', 'random', 'random_as_ori'), type=str, default='random_as_ori')  # 
     parser.add_argument('--input_mode', help='what to input', choices=('ct', 'ct_masked_by_torso', 'ct_left','ct_masked_by_lung','ct_masked_by_left_lung', 'ct_masked_by_right_lung', 'ct_right','ct_left_in_lung', 'ct_right_in_lung','ct_upper','ct_lower', 'ct_front', 'ct_back','ct_upper_in_lung','ct_lower_in_lung', 'ct_front_in_lung', 'ct_back_in_lung', 'vessel', 'ct_masked_by_vessel', 'vessel_skeleton_pcd', 'ct_masked_by_vessel_dilated1',
-                                                                       'ct_masked_by_vessel_dilated2', 'ct_masked_by_vessel_dilated3', 'ct_masked_by_vessel_dilated4'), type=str, default='vessel_skeleton_pcd')
+                                                                       'ct_masked_by_vessel_dilated2', 'ct_masked_by_vessel_dilated3', 'ct_masked_by_vessel_dilated4'), type=str, default='vessel')
     parser.add_argument('--target', help='target prediction', type=str,
                         default='FVC-DLCOc_SB-FEV1-TLC_He')  # FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight--DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred
     parser.add_argument(

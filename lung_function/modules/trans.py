@@ -206,9 +206,12 @@ class LoadDatad(MapTransform):
             lung_fpath = convertfpath(fpath)
             lung_mask = load_itk(lung_fpath, require_ori_sp=False)  # shape order: z, y, x
             lung_mask[lung_mask>0] = 1  # lung mask may include 1 for left lung and 2 for right lung
-            x += 1500  # shift all values
-            x = x * lung_mask
-            x -= 1500
+            if 'vessel' == self.inputmode:
+                x = x * lung_mask
+            else:  # 'ct_masked_by_vessel
+                x += 1500  # shift all values
+                x = x * lung_mask
+                x -= 1500
 
             # save_itk(fpath.replace('.nii.gz', '_GcVessel_dilated.nii.gz'), x, ori, sp)
 
