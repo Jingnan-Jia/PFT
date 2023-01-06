@@ -126,6 +126,14 @@ def clean_data(pft_df, data_dir):
     pft_df.drop(pft_df[pft_df['DLCOc/pred'] == "NV"].index, inplace=True)
     pft_df.drop(pft_df[pft_df['FVC/predNew'] == "NV"].index, inplace=True)
 
+    for name in pft_df.columns:
+        if name!='PatID':
+            pft_df[name].replace('', np.nan, inplace=True)  # exclude 3 rows with NV or empty cells
+            pft_df[name].replace('NV', np.nan, inplace=True)
+
+            pft_df.dropna(subset=[name], inplace=True)
+            pft_df[name] = pft_df[name].astype(float)
+
     # get availabel files
     scans = glob.glob(data_dir + "/SSc_patient_???????_GcVessel.nii.gz")
     if len(scans) == 0:
