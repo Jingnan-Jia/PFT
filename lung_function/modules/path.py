@@ -16,7 +16,7 @@ class PFTPath():
     log_dir = os.path.join(results_dir, 'logs')
     ex_dir = os.path.join(results_dir, 'experiments')
     data_dir_root = '/home/jjia/data/dataset/lung_function'
-    label_fpath = data_dir_root + "/SScBaseline_PFT_anonymized.xlsx"
+    label_fpath = data_dir_root + "/SScBaseline_PFT_anonymized_with_percent.xlsx"
     id_dt_file = data_dir_root + "/Dictionary.xlsx"
     for directory in [results_dir, log_dir, ex_dir]:
         if not os.path.isdir(directory):

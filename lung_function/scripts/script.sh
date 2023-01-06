@@ -70,5 +70,5 @@ echo "Hello, I am back in $(hostname) to run the code"
 
 
 # shellcheck disable=SC2046
-idx=0; export CUDA_VISIBLE_DEVICES=$idx; stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --net='vgg11_3d' --input_mode='vessel' --ct_sp='1.5' --target='FVC-DLCOc_SB-FEV1-TLC_He' --remark="DLCOc, 4 levels"
+idx=0; export CUDA_VISIBLE_DEVICES=$idx; stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --net='vgg11_3d' --input_mode='ct' --ct_sp='1.5' --target='FVCPP-DLCOcPP-FEV1PP-TLCPP' --remark="DLCOc, 4 levels"
 # idx=1; export CUDA_VISIBLE_DEVICES=$idx; stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --pretrained_id='0' --input_mode='ct_masked_by_vessel_dilated2' --target='FVC-DLCOc_SB-FEV1-TLC_He' --remark="DLCOc, trained from SSc, background is -1 not 0"
