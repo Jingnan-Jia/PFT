@@ -116,23 +116,24 @@ def xformd(mode, args, pad_truncated_dir='tmp'):
     return transform
 
 
-def clean_data(pft_df, data_dir):
+def clean_data(pft_df, data_dir, target):
     pft_df.drop(pft_df[np.isnan(pft_df.DLCO_SB)].index, inplace=True)
     pft_df.drop(pft_df[pft_df.DLCO_SB == 0].index, inplace=True)
     pft_df.drop(pft_df[np.isnan(pft_df['FEV1'])].index, inplace=True)
     pft_df.drop(pft_df[pft_df['FEV1'] == 0].index, inplace=True)
     pft_df.drop(pft_df[np.isnan(pft_df.DateDF_abs)].index, inplace=True)
     pft_df.drop(pft_df[pft_df.DateDF_abs > 10].index, inplace=True)
-    pft_df.drop(pft_df[pft_df['DLCOc/pred'] == "NV"].index, inplace=True)
-    pft_df.drop(pft_df[pft_df['FVC/predNew'] == "NV"].index, inplace=True)
 
-    for name in pft_df.columns:
-        if name!='PatID':
-            pft_df[name].replace('', np.nan, inplace=True)  # exclude 3 rows with NV or empty cells
-            pft_df[name].replace('NV', np.nan, inplace=True)
+    # pft_df.drop(pft_df[pft_df['DLCOc/pred'] == "NV"].index, inplace=True)
+    # pft_df.drop(pft_df[pft_df['FVC/predNew'] == "NV"].index, inplace=True)
+    if 'PP' in target:
+        pft_df.drop(pft_df[pft_df['FVCPP'] == "NV"].index, inplace=True)
+        pft_df.drop(pft_df[pft_df['DLCOcPP'] == "NV"].index, inplace=True)
+        pft_df.drop(pft_df[pft_df['TLCPP'] == "NV"].index, inplace=True)
+        pft_df.drop(pft_df[pft_df['FEV1PP'] == "NV"].index, inplace=True)
 
-            pft_df.dropna(subset=[name], inplace=True)
-            pft_df[name] = pft_df[name].astype(float)
+
+  
 
     # get availabel files
     scans = glob.glob(data_dir + "/SSc_patient_???????_GcVessel.nii.gz")
@@ -202,7 +203,7 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
 
     label_excel = pd.read_excel(label_fpath, engine='openpyxl')
     label_excel = label_excel.sort_values(by=['subjectID'])
-    label_excel = clean_data(label_excel, data_dir)
+    label_excel = clean_data(label_excel, data_dir, args.target)
 
     # 3 labels for one level
     # nparray is easy for kfold split
