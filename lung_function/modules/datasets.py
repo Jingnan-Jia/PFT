@@ -116,7 +116,7 @@ def xformd(mode, args, pad_truncated_dir='tmp'):
     return transform
 
 
-def clean_data(pft_df, data_dir, target):
+def clean_data(pft_df, data_dir, target, top_pats):
     pft_df.drop(pft_df[np.isnan(pft_df.DLCO_SB)].index, inplace=True)
     pft_df.drop(pft_df[pft_df.DLCO_SB == 0].index, inplace=True)
     pft_df.drop(pft_df[np.isnan(pft_df['FEV1'])].index, inplace=True)
@@ -131,6 +131,10 @@ def clean_data(pft_df, data_dir, target):
         pft_df.drop(pft_df[pft_df['DLCOcPP'] == "NV"].index, inplace=True)
         pft_df.drop(pft_df[pft_df['TLCPP'] == "NV"].index, inplace=True)
         pft_df.drop(pft_df[pft_df['FEV1PP'] == "NV"].index, inplace=True)
+    if top_pats is not None:
+        avail_subject_id = ['SSc_patient_'+f"{i:07}" for i in top_pats]
+        pft_df.drop(pft_df[~pft_df['subjectID'].isin(avail_subject_id)].index, inplace=True)
+
 
 
   
@@ -145,8 +149,7 @@ def clean_data(pft_df, data_dir, target):
         ('0422335' in id))])  # exclude '422335' which has bad image quality
     # 0456204 had a different file name, 6216723 and 6318939 are typo, I need to add them back !!!
 
-    pft_df.drop(pft_df.loc[~pft_df['subjectID'].isin(
-        availabel_id_set)].index, inplace=True)
+    pft_df.drop(pft_df.loc[~pft_df['subjectID'].isin(availabel_id_set)].index, inplace=True)
 
     # pft_df = pft_df.drop(pft_df[pft_df['subjectID'] not in availabel_id_set].index)
     # print(f"length of scans: {len(scans)}, length of labels: {len(pft_df)}")
@@ -194,7 +197,7 @@ def pat_from_json(data, fold=1) -> np.ndarray:
     return train, valid, test
 
 
-def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'test'), nb=None):
+def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'test'), nb=None, top_pats=None):
 
     if args.ct_sp in ('1.0', '1.5'):
         pad_truncated_dir = f"/home/jjia/data/dataset/lung_function/iso{args.ct_sp}/z{args.z_size}x{args.x_size}y{args.y_size}_pad_ratio{str(args.pad_ratio)}"
@@ -203,9 +206,9 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
 
     label_excel = pd.read_excel(label_fpath, engine='openpyxl')
     label_excel = label_excel.sort_values(by=['subjectID'])
-    label_excel = clean_data(label_excel, data_dir, args.target)
+    label_excel = clean_data(label_excel, data_dir, args.target, top_pats)
 
-    # 3 labels for one level
+     # 3 labels for one level
     # nparray is easy for kfold split
     data = np.array(label_excel.to_dict('records'))
     for d in data:
