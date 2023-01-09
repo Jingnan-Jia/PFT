@@ -45,7 +45,7 @@ def get_args(jupyter=False):
     parser.add_argument('--position_center_norm',
                         help='if use the relative coordinates: center point is 0,0,0', type=boolean_string, default='True')
     parser.add_argument('--batch_size', help='batch_size',
-                        type=int, default=1)
+                        type=int, default=5)
     parser.add_argument('--ct_sp', help='space', type=str,
                         choices=('ori', '1.0', '1.5'), default='1.5')
     parser.add_argument('--kfold_seed', help='kfold_seed',
@@ -71,9 +71,9 @@ def get_args(jupyter=False):
 
     # training parameters
     parser.add_argument('--mode', choices=('train', 'infer',
-                        'continue_train'), help='mode', type=str, default='infer')
+                        'continue_train'), help='mode', type=str, default='train')
     parser.add_argument('--pretrained_id', help='id used for inference, or continue_train',
-                        type=str, default="2195")  # SSc-852-853-854-855, 1504-1505-1510-1515
+                        type=str, default="0")  # SSc-852-853-854-855, 1504-1505-1510-1515
     # parser.add_argument('--reload_jobid', help='jobid used for inference, or continue_train', type=int, default=0)
     parser.add_argument('--pretrained_imgnet', help='if pretrained from imagenet',
                         type=boolean_string, default='False')
