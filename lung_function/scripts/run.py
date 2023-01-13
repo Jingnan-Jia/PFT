@@ -133,9 +133,12 @@ class Run:
             args.loss, mat_diff_loss_scale=args.mat_diff_loss_scale)
         if args.adamw:
             self.opt = torch.optim.AdamW(self.net.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+
         else:
-            self.opt = torch.optim.Adam(
-            self.net.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+            self.opt = torch.optim.Adam( self.net.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        if args.cosine_decay:
+            self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.opt, T_max=10, eta_min=0, last_epoch=-1, verbose=False)
+
         self.net = self.net.to(self.device)
 
         validMAEEpoch_AllBest = 1000
@@ -359,6 +362,9 @@ class Run:
                 log_metric('TUpdateWBatch', t2-t1, data_idx +
                            epoch_idx*len(dataloader))
                 t0 = t2  # reset the t0
+        if args.cosine_decay:
+            self.scheduler.step() # update the scheduler learning rate
+
         log_metric(mode+'LossEpoch', loss_accu/len(dataloader), epoch_idx)
         log_metric(mode+'MAEEpoch_All', mae_accu_all /
                    len(dataloader), epoch_idx)
