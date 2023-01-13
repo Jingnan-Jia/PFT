@@ -12,8 +12,66 @@ import pandas as pd
 import torch
 from scipy.ndimage.morphology import binary_dilation
 from monai.transforms import MapTransform, Transform, RandomizableTransform
+
 TransInOut = Dict[Hashable, Optional[Union[np.ndarray, torch.Tensor, str, int]]]
 # Note: all transforms here must inheritage Transform, Transform, or RandomTransform.
+
+
+
+
+def index_points(points, idx):
+    """
+    I have to add a assert check to ensure the idx does not exceed the limitation of points!
+    Input:
+        points: input points data, [B, N, C]
+        idx: sample index data, [B, S, [S1]]
+    Return:
+        new_points:, indexed points data, [B, S, C]
+    """
+    points = torch.tensor(points)
+
+    device = points.device
+    B = points.shape[0]  #  batch
+    view_shape = list(idx.shape)   #  [B, S, [S1]]
+    view_shape[1:] = [1] * (len(view_shape) - 1)  # [B, 1]
+    repeat_shape = list(idx.shape)     #  [B, S, [S1]]
+    repeat_shape[0] = 1     #  [1, S, [S1]]
+    batch_indices = torch.arange(B, dtype=torch.long).to(device).view(view_shape).repeat(repeat_shape)   #  [B, S, [S1]]
+    # points = points.to('cpu')
+    # batch_indices = batch_indices.to('cpu')
+    # idx = idx.to('cpu')
+    # idx[idx>=points.shape[1]] = points.shape[1]-1  # test if the works
+    new_points = points[batch_indices, idx, :]  # [B, S, [S1], C]
+    # new_points = new_points.to(device)
+    return new_points
+
+
+def farthest_point_sample(xyz, npoint):
+    """
+    Input:
+        xyz: pointcloud data, [B, N, d=3]
+        npoint: number of samples
+    Return:
+        centroids: sampled pointcloud index, [B, npoint]
+    """
+    xyz = torch.tensor(xyz)
+    xyz = xyz.unsqueeze(0)# batch size is 1 for the loadingimputdata
+    B, N, C = xyz.shape
+
+    centroids = torch.zeros(B, npoint, dtype=torch.long)
+    distance = torch.ones(B, N, dtype=torch.float64) * 1e10  # float64
+    farthest = torch.randint(0, N, (B,), dtype=torch.long)
+    batch_indices = torch.arange(B, dtype=torch.long)
+    for i in range(npoint):
+        centroids[:, i] = farthest
+        centroid = xyz[batch_indices, farthest, :].view(B, 1, 3)  
+        dist = torch.sum((xyz - centroid) ** 2, -1)
+        mask = dist < distance
+        distance[mask] = dist[mask]
+        farthest = torch.max(distance, -1)[1]
+    centroids = centroids.clone().cpu().numpy()
+    centroids = centroids[0] # remove the first batch dimension again
+    return centroids
 
 
 class RemoveTextd(MapTransform):
@@ -110,12 +168,13 @@ class SampleShuffled(MapTransform, RandomizableTransform):
         return data
 
 class LoadPointCloud(MapTransform):
-    def __init__(self, keys, target, position_center_norm, PNB, repeated_sample):
+    def __init__(self, keys, target, position_center_norm, PNB, repeated_sample, FPS_input=None):
         super().__init__(keys, allow_missing_keys=True)
         self.target = [i.lstrip() for i in target.split('-')]
         self.position_center_norm = position_center_norm
         self.PNB = PNB
         self.repeated_sample = repeated_sample
+        self.FPS_input = FPS_input
 
 
     def __call__(self, data: TransInOut) -> TransInOut:
@@ -129,8 +188,12 @@ class LoadPointCloud(MapTransform):
                 if not row[0]%1 and not row[1]%1 and not row[2]%1:  
                     tmp_ls.append(row)
             xyzr['data'] = np.array(tmp_ls)
-        choice = np.random.choice(len(xyzr['data']), self.PNB, replace=self.repeated_sample)
-        xyzr['data'] = xyzr['data'][choice]  # sample data
+        if self.FPS_input:
+            fps_idx = farthest_point_sample(xyzr['data'][:,:3], self.PNB) # index used to get value from xyz, [B, npoint]
+            xyzr['data'] = index_points(xyzr['data'], fps_idx)  # get new xyz from xyz using the index, [B, npoint, d=3]
+        else:
+            choice = np.random.choice(len(xyzr['data']), self.PNB, replace=self.repeated_sample)
+            xyzr['data'] = xyzr['data'][choice]  # sample data
 
         xyz_mm = xyzr['data'][:,:3] * xyzr['spacing']  # convert voxel location to physical mm
         if self.position_center_norm:

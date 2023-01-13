@@ -83,12 +83,16 @@ def farthest_point_sample(xyz, npoint):
     Return:
         centroids: sampled pointcloud index, [B, npoint]
     """
-    device = xyz.device
-    B, N, C = xyz.shape
-    centroids = torch.zeros(B, npoint, dtype=torch.long).to(device)
-    distance = torch.ones(B, N).to(device) * 1e10
-    farthest = torch.randint(0, N, (B,), dtype=torch.long).to(device)
-    batch_indices = torch.arange(B, dtype=torch.long).to(device)
+    device = xyz.device  # could be cpu or gpu
+    B, N, C = xyz.shape  # batch, number of total points, channel or feasure number (normally is 3 for xyz)
+    centroids = torch.zeros(B, npoint, dtype=torch.long).to(device) 
+    # (B, npoint) is the shape of output, respresenting the coordinates of sampled points
+
+    distance = torch.ones(B, N).to(device) * 1e10  # will store the distance between points to ?
+    farthest = torch.randint(0, N, (B,), dtype=torch.long).to(device)  
+    # shape of (B,), randomly select one point as the first point of FPS for each point set,
+    # like: [88, 34, 103] when batch size is 3
+    batch_indices = torch.arange(B, dtype=torch.long).to(device)  # (B,), like [0,1,2] when batch size is 3 
     for i in range(npoint):
         centroids[:, i] = farthest
         centroid = xyz[batch_indices, farthest, :].view(B, 1, 3)  

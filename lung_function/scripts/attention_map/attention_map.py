@@ -33,7 +33,7 @@ class Args:
 
 def main():
     AttentionMethod = "GradCAM"  # or others
-    Ex_id = 750
+    Ex_id = 2101
     mlflow.set_tracking_uri("http://nodelogin02:5000")
     experiment = mlflow.set_experiment("lung_fun_db15")
     client = MlflowClient()
@@ -43,6 +43,9 @@ def main():
     args_dt = run_.data.params  # extract the hyper parameters
     args = Args(args_dt)  #convert to object
     args.workers=1
+    args.net = 'vgg11_3d'
+    args.input_mode = 'ct_back'
+    args.target = 'FVC-DLCO_SB-FEV1-TLC_He'
 
     if AttentionMethod=="GradCAM":
         attention = GradCAM(Ex_id, args_dt, 'last_maxpool')
@@ -52,7 +55,7 @@ def main():
 
     mypath = PFTPath(Ex_id, check_id_dir=False, space=args.ct_sp)
 
-    data_dt = all_loaders(mypath.data_dir, mypath.label_fpath, args, datasetmode='valid', nb=5)
+    data_dt = all_loaders(mypath.data_dir, mypath.label_fpath, args, datasetmode='valid', top_pats=top_pats)
     dataloader = data_dt['valid']
 
     for data in dataloader:

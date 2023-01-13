@@ -19,6 +19,8 @@ from lung_function.modules.path import PFTPath
 from lung_function.modules.networks import get_net_3d
 from lung_function.modules.loss import get_loss
 from lung_function.modules.datasets import all_loaders
+from lung_function.modules.trans import batch_bbox2_3D
+
 import os
 from monai.utils import set_determinism
 import random
@@ -232,9 +234,54 @@ def occlusion_map(ptch, data, net,  inlung=False, targets=None, occlusion_dir=No
 
     if not os.path.isdir(occlusion_dir):
         os.makedirs(occlusion_dir)
-    x, y, lung_mask, ori, sp = data[inputmode][0], data['label'][
+    batch_x, y, lung_mask, ori, sp = data[inputmode], data['label'][
         0], data['lung_mask'][0], data['origin'][0], data['spacing'][0]
+    input_mode = inputmode
+    if input_mode == 'ct_masked_by_lung':
+        a = copy.deepcopy(data['lung_mask'])
+        a[a > 0] = 1
+        batch_x += 1  # shift lowest value from -1 to 0
+        batch_x = batch_x * a
+        batch_x -= 1
+    elif input_mode == 'ct_masked_by_left_lung':
+        a = copy.deepcopy(data['lung_mask'])
+        a[a !=2] = 0
+        batch_x += 1  # shift lowest value from -1 to 0
+        batch_x = batch_x * a
+        batch_x -= 1
+    elif input_mode == 'ct_masked_by_right_lung':
+        a = copy.deepcopy(data['lung_mask'])
+        a[a !=1] = 0
+        batch_x += 1  # shift lowest value from -1 to 0
+        batch_x = batch_x * a
+        batch_x -= 1
+    elif input_mode in ('ct_left', 'ct_right', 'ct_upper', 'ct_lower', 'ct_front', 'ct_back'):
+        lung_mask = copy.deepcopy(data['lung_mask'])
+        lung_mask[lung_mask > 0] = 1
+        if 'in_lung' in input_mode:  # only keep values in lung
+            batch_x += 1  # shift lowest value from -1 to 0
+            batch_x = batch_x * lung_mask  # masked by lung
+            batch_x -= 1
 
+        z_bottom, z_top, y_bottom, y_top, x_bottom, x_top = batch_bbox2_3D(lung_mask)
+        z_mid, y_mid, x_mid = (z_bottom + z_top)//2, (y_bottom + y_top)//2, (x_bottom + x_top)//2
+        for idx in range(batch_x.shape[0]):
+            if input_mode == 'ct_upper':
+                batch_x[idx, :, :z_mid[idx], :, :] = - 1  # remove bottom
+            elif input_mode == 'ct_lower':
+                batch_x[idx, :, z_mid[idx]:, :, :] = - 1  # remove upper
+            elif input_mode == 'ct_back':
+                batch_x[idx, :, :, y_mid[idx]:, :] = - 1  # remove front, keep back
+            elif input_mode == 'ct_front':
+                batch_x[idx, :, :, :y_mid[idx], :] = - 1  # remove back, keep front
+            elif input_mode == 'ct_left':
+                batch_x[idx, :, :, :, :x_mid[idx]] = - 1  # remove right
+            else:  # args.input_mode == 'ct_front':
+                batch_x[idx, :, :, :, x_mid[idx]:] = - 1  # remove left
+    else:
+        pass
+    x = batch_x[0]
+    
     # lung_mask = morphology.binary_erosion(lung_mask.numpy(), np.ones((6, 6))).astype(int)
     if inlung:
         lung_mask = lung_mask.numpy()
@@ -350,7 +397,7 @@ def occlusion_map(ptch, data, net,  inlung=False, targets=None, occlusion_dir=No
     # per label
     for map, target, score, pred in zip(map_all_ls, targets, y_ls, pred_ls):
         fpath = f"{occlusion_dir}/{target}_label_{score: .2f}_pred_{pred: .2f}.mha"
-        save_itk(fpath, map*1000, ori.tolist(), sp.tolist(), dtype='float')
+        save_itk(fpath, map, ori.tolist(), sp.tolist(), dtype='float')
 
 
 def get_pat_dir(img_fpath: str) -> str:
@@ -374,6 +421,11 @@ def batch_occlusion(net_id: int, patch_size: int, stride: int, max_img_nb: int, 
 
     args = get_args()  # get argument
     args.batch_size = 1  # here batch size must be 1.
+    args.net = 'vgg11_3d'
+    args.input_mode = 'ct_back_in_lung'
+    args.target = 'FVC-DLCO_SB-FEV1-TLC_He'
+
+
     targets = [i.lstrip() for i in args.target.split('-')
                ]  # FVC-DLCO_SB-FEV1-TLC_He
     net = get_net_3d(name=args.net, nb_cls=len(
@@ -417,10 +469,10 @@ def batch_occlusion(net_id: int, patch_size: int, stride: int, max_img_nb: int, 
 
 if __name__ == '__main__':
     occ_status = 'constant_-1'  # 'constant' or 'healthy', -1 is the minimum value
-    id = 2195
+    id = 2102
     INLUNG = False
-    patch_size = 16  # same for 3 dims
-    stride = patch_size//2  # /2 or /4 to have high resolution heat map
+    patch_size = 32  # same for 3 dims
+    stride = patch_size  # /2 or /4 to have high resolution heat map
     # grid_nb = 10
     batch_occlusion(id, patch_size, stride, max_img_nb=5,
                     inlung=INLUNG, occ_status=occ_status)

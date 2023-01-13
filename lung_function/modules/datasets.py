@@ -56,7 +56,8 @@ def xformd(mode, args, pad_truncated_dir='tmp'):
     post_pad_size = [int(i * pad_ratio) for i in [z_size, y_size, x_size]]
     keys = (inputmode, )
     if inputmode == 'vessel_skeleton_pcd':
-        xforms = [LoadPointCloud(keys=keys, target=target, position_center_norm=args.position_center_norm, PNB=PNB, repeated_sample=args.repeated_sample),
+        xforms = [LoadPointCloud(keys=keys, target=target, position_center_norm=args.position_center_norm, PNB=PNB, 
+        repeated_sample=args.repeated_sample, FPS_input=args.FPS_input),
                 #   SampleShuffled(
                 #       keys=keys, PNB=PNB, repeated_sample=args.repeated_sample),
                   # ShiftCoordinated(keys=keys, position_center_norm=args.position_center_norm),

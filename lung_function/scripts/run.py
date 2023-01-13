@@ -131,7 +131,10 @@ class Run:
 
         self.loss_fun = get_loss(
             args.loss, mat_diff_loss_scale=args.mat_diff_loss_scale)
-        self.opt = torch.optim.Adam(
+        if args.adamw:
+            self.opt = torch.optim.AdamW(self.net.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        else:
+            self.opt = torch.optim.Adam(
             self.net.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         self.net = self.net.to(self.device)
 
@@ -234,6 +237,7 @@ class Run:
                 data[key] = points
 
             batch_x = data[key]  # n, c, z, y, x
+            
             if args.input_mode == 'ct_masked_by_lung':
                 a = copy.deepcopy(data['lung_mask'])
                 a[a > 0] = 1
