@@ -39,7 +39,7 @@ def get_args(jupyter=False):
 
     # data
     parser.add_argument('--shift_range', help='shift range', type=float, default=0)
-    parser.add_argument('--PNB', help='points number for each image', type=int, default=28000)
+    parser.add_argument('--PNB', help='points number for each image', type=int, default=56000)
     parser.add_argument('--FPS_input', help='Fartest point sample input', type=boolean_string, default='False')
     
     parser.add_argument(
@@ -47,7 +47,7 @@ def get_args(jupyter=False):
     parser.add_argument('--position_center_norm',
                         help='if use the relative coordinates: center point is 0,0,0', type=boolean_string, default='True')
     parser.add_argument('--batch_size', help='batch_size',
-                        type=int, default=10)
+                        type=int, default=5)
     parser.add_argument('--ct_sp', help='space', type=str,
                         choices=('ori', '1.0', '1.5'), default='ori')
     parser.add_argument('--kfold_seed', help='kfold_seed',
@@ -97,9 +97,9 @@ def get_args(jupyter=False):
     parser.add_argument('--lr', help='learning rate',
                         type=float, default=0.0001)
     parser.add_argument('--adamw', help='adamw optimizer',
-                        type=boolean_string, default='True')
+                        type=boolean_string, default='False')
     parser.add_argument('--cosine_decay', help='cosine_decay',
-                        type=boolean_string, default='True')
+                        type=boolean_string, default='False')
     # others
     parser.add_argument(
         '--outfile', help='output file when running by script instead of pycharm', type=str)
