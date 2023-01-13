@@ -145,7 +145,7 @@ class SampleShuffled(MapTransform, RandomizableTransform):
         self.repeated_sample=repeated_sample
 
     def __call__(self, data: TransInOut) -> TransInOut:
-        print("running random shu")
+        # print("running random shu")
         for key in self.keys:  
             # if self.total_shuffle:  # shuffle all points
             #     np.random.shuffle(data[key])    # shuffle data inplace
@@ -188,12 +188,9 @@ class LoadPointCloud(MapTransform):
                 if not row[0]%1 and not row[1]%1 and not row[2]%1:  
                     tmp_ls.append(row)
             xyzr['data'] = np.array(tmp_ls)
-        if self.FPS_input:
-            fps_idx = farthest_point_sample(xyzr['data'][:,:3], self.PNB) # index used to get value from xyz, [B, npoint]
-            xyzr['data'] = index_points(xyzr['data'], fps_idx)  # get new xyz from xyz using the index, [B, npoint, d=3]
-        else:
-            choice = np.random.choice(len(xyzr['data']), self.PNB, replace=self.repeated_sample)
-            xyzr['data'] = xyzr['data'][choice]  # sample data
+
+        # choice = np.random.choice(len(xyzr['data']), self.PNB, replace=self.repeated_sample)
+        # xyzr['data'] = xyzr['data'][choice]  # sample data
 
         xyz_mm = xyzr['data'][:,:3] * xyzr['spacing']  # convert voxel location to physical mm
         if self.position_center_norm:
