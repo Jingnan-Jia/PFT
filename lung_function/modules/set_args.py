@@ -33,13 +33,13 @@ def get_args(jupyter=False):
     parser.add_argument('--npoint_base', help='base of npoint',
                         type=int, default=512)  # ori = 512
     parser.add_argument('--radius_base', help='base of radius',
-                        type=int, default=40)  # ori = 40
+                        type=int, default=10)  # ori = 40
     parser.add_argument('--nsample_base', help='base of nsample',
                         type=int, default=64)  # ori = 64
 
     # data
     parser.add_argument('--shift_range', help='shift range', type=float, default=0)
-    parser.add_argument('--PNB', help='points number for each image', type=int, default=140000)
+    parser.add_argument('--PNB', help='points number for each image', type=int, default=56000)
     parser.add_argument('--FPS_input', help='Fartest point sample input', type=boolean_string, default='False')
     
     parser.add_argument(
@@ -47,7 +47,7 @@ def get_args(jupyter=False):
     parser.add_argument('--position_center_norm',
                         help='if use the relative coordinates: center point is 0,0,0', type=boolean_string, default='True')
     parser.add_argument('--batch_size', help='batch_size',
-                        type=int, default=2)
+                        type=int, default=5)
     parser.add_argument('--ct_sp', help='space', type=str,
                         choices=('ori', '1.0', '1.5'), default='ori')
     parser.add_argument('--kfold_seed', help='kfold_seed',
@@ -95,7 +95,7 @@ def get_args(jupyter=False):
     parser.add_argument('--weight_decay', help='L2 regularization', type=float,
                         default=0.0001)  # must be a float number !
     parser.add_argument('--lr', help='learning rate',
-                        type=float, default=0.0001)
+                        type=float, default=0.001)
     parser.add_argument('--adamw', help='adamw optimizer',
                         type=boolean_string, default='False')
     parser.add_argument('--cosine_decay', help='cosine_decay',
