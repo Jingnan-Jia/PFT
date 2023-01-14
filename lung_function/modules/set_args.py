@@ -47,7 +47,7 @@ def get_args(jupyter=False):
     parser.add_argument('--position_center_norm',
                         help='if use the relative coordinates: center point is 0,0,0', type=boolean_string, default='True')
     parser.add_argument('--batch_size', help='batch_size',
-                        type=int, default=5)
+                        type=int, default=2)
     parser.add_argument('--ct_sp', help='space', type=str,
                         choices=('ori', '1.0', '1.5'), default='ori')
     parser.add_argument('--kfold_seed', help='kfold_seed',
@@ -84,7 +84,7 @@ def get_args(jupyter=False):
     parser.add_argument('--fold', choices=(1, 2, 3, 4),
                         help='1 to 4', type=int, default=1)
     parser.add_argument(
-        '--valid_period', help='how many epochs between 2 validation', type=int, default=2)
+        '--valid_period', help='how many epochs between 2 validation', type=int, default=5)
     parser.add_argument('--loss', choices=('mse', 'mae', 'smooth_mae', 'mse+mae', 'msehigher', 'mse_regular'), help='mode', type=str,
                         default='mse')
     parser.add_argument('--mat_diff_loss_scale',
