@@ -39,7 +39,7 @@ def get_args(jupyter=False):
 
     # data
     parser.add_argument('--shift_range', help='shift range', type=float, default=0)
-    parser.add_argument('--PNB', help='points number for each image', type=int, default=56000)
+    parser.add_argument('--PNB', help='points number for each image', type=int, default=140000)
     parser.add_argument('--FPS_input', help='Fartest point sample input', type=boolean_string, default='False')
     
     parser.add_argument(
@@ -84,7 +84,7 @@ def get_args(jupyter=False):
     parser.add_argument('--fold', choices=(1, 2, 3, 4),
                         help='1 to 4', type=int, default=1)
     parser.add_argument(
-        '--valid_period', help='how many epochs between 2 validation', type=int, default=5)
+        '--valid_period', help='how many epochs between 2 validation', type=int, default=2)
     parser.add_argument('--loss', choices=('mse', 'mae', 'smooth_mae', 'mse+mae', 'msehigher', 'mse_regular'), help='mode', type=str,
                         default='mse')
     parser.add_argument('--mat_diff_loss_scale',

@@ -422,8 +422,10 @@ def batch_occlusion(net_id: int, patch_size: int, stride: int, max_img_nb: int, 
     args = get_args()  # get argument
     args.batch_size = 1  # here batch size must be 1.
     args.net = 'vgg11_3d'
-    args.input_mode = 'ct_back_in_lung'
+    args.input_mode = 'ct'
     args.target = 'FVC-DLCO_SB-FEV1-TLC_He'
+    args.ct_sp = '1.5'
+
 
 
     targets = [i.lstrip() for i in args.target.split('-')
@@ -468,11 +470,11 @@ def batch_occlusion(net_id: int, patch_size: int, stride: int, max_img_nb: int, 
 
 
 if __name__ == '__main__':
-    occ_status = 'constant_-1'  # 'constant' or 'healthy', -1 is the minimum value
-    id = 2102
+    occ_status = 'constant_1'  # 'constant' or 'healthy', -1 is the minimum value
+    id = 2133
     INLUNG = False
     patch_size = 32  # same for 3 dims
-    stride = patch_size  # /2 or /4 to have high resolution heat map
+    stride = patch_size//2  # /2 or /4 to have high resolution heat map
     # grid_nb = 10
     batch_occlusion(id, patch_size, stride, max_img_nb=5,
                     inlung=INLUNG, occ_status=occ_status)
