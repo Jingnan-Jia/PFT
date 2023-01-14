@@ -33,7 +33,7 @@ def get_args(jupyter=False):
     parser.add_argument('--npoint_base', help='base of npoint',
                         type=int, default=512)  # ori = 512
     parser.add_argument('--radius_base', help='base of radius',
-                        type=int, default=10)  # ori = 40
+                        type=int, default=40)  # ori = 40
     parser.add_argument('--nsample_base', help='base of nsample',
                         type=int, default=64)  # ori = 64
 
