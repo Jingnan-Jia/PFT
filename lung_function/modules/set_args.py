@@ -21,7 +21,7 @@ def get_args(jupyter=False):
                                           'cnn5fc2', 'cnn6fc2', 'cnn2fc1', 'cnn3fc2', 'r3d_18', 'slow_r50',
                                           'slowfast_r50', 'x3d_xs', 'x3d_s', 'x3d_m', 'x3d_l', 'pointnet_reg',
                                           'vgg11_3d'),  # 'r2plus1d_18' out of memory
-                        help='network name', type=str, default='pointnet2_reg')
+                        help='network name', type=str, default='vgg11_3d')
     parser.add_argument('--fc2_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
                         default=1024)
     parser.add_argument('--fc1_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
