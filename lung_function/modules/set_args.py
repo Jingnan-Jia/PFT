@@ -101,7 +101,7 @@ def get_args(jupyter=False):
                         help='pretrained or not', type=int, default=0)
     parser.add_argument('--epochs', help='total epochs', type=int, default=500)
     parser.add_argument('--weight_decay', help='L2 regularization', type=float,
-                        default=0.0001)  # must be a float number !
+                        default=0.001)  # must be a float number !
     parser.add_argument('--lr', help='learning rate',
                         type=float, default=0.0001)
     parser.add_argument('--adamw', help='adamw optimizer',
@@ -113,7 +113,7 @@ def get_args(jupyter=False):
         '--outfile', help='output file when running by script instead of pycharm', type=str)
     parser.add_argument('--hostname', help='hostname of the server', type=str)
     parser.add_argument('--remark', help='comments on this experiment',
-                        type=str, default='mse_regular, 0.001')
+                        type=str, default='None')
     parser.add_argument('--jobid', help='slurm job_id', type=int, default=0)
     # For jupyter notebooks
     if jupyter:
