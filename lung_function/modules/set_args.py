@@ -20,7 +20,7 @@ def get_args(jupyter=False):
     parser.add_argument('--net', choices=('vgg11_3d', 'vit3', 'vgg16_3d', 'vgg19_3d', 'r3d_resnet', 'cnn3fc1', 'cnn4fc2',
                                           'cnn5fc2', 'cnn6fc2', 'cnn2fc1', 'cnn3fc2', 'r3d_18', 'slow_r50',
                                           'slowfast_r50', 'x3d_xs', 'x3d_s', 'x3d_m', 'x3d_l', 'pointnet_reg',
-                                          'pointnet2_reg'),  # 'r2plus1d_18' out of memory
+                                          'vgg11_3d'),  # 'r2plus1d_18' out of memory
                         help='network name', type=str, default='pointnet2_reg')
     parser.add_argument('--fc2_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
                         default=1024)
@@ -38,28 +38,25 @@ def get_args(jupyter=False):
                         type=int, default=64)  # ori = 64
 
     # data
-    parser.add_argument('--shift_range', help='shift range', type=float, default=0)
-    parser.add_argument('--PNB', help='points number for each image', type=int, default=56000)
-    parser.add_argument('--FPS_input', help='Fartest point sample input', type=boolean_string, default='False')
-    
-    parser.add_argument(
-        '--repeated_sample', help='if apply repeated sampling to get PNB points?', type=boolean_string, default='False')
-    parser.add_argument('--position_center_norm',
-                        help='if use the relative coordinates: center point is 0,0,0', type=boolean_string, default='True')
+    # common data
     parser.add_argument('--batch_size', help='batch_size',
                         type=int, default=5)
     parser.add_argument('--ct_sp', help='space', type=str,
-                        choices=('ori', '1.0', '1.5'), default='ori')
+                        choices=('ori', '1.0', '1.5'), default='1.5')
     parser.add_argument('--kfold_seed', help='kfold_seed',
                         type=int, default=711)
     parser.add_argument('--test_pat', help='testing patients', choices=(
         'zhiwei77', 'random', 'random_as_ori'), type=str, default='random_as_ori')  # 
     parser.add_argument('--input_mode', help='what to input', choices=('ct', 'ct_masked_by_torso', 'ct_left','ct_masked_by_lung','ct_masked_by_left_lung', 'ct_masked_by_right_lung', 'ct_right','ct_left_in_lung', 'ct_right_in_lung','ct_upper','ct_lower', 'ct_front', 'ct_back','ct_upper_in_lung','ct_lower_in_lung', 'ct_front_in_lung', 'ct_back_in_lung', 'vessel', 'ct_masked_by_vessel', 'vessel_skeleton_pcd', 'ct_masked_by_vessel_dilated1',
-                                                                       'ct_masked_by_vessel_dilated2', 'ct_masked_by_vessel_dilated3', 'ct_masked_by_vessel_dilated4'), type=str, default='vessel_skeleton_pcd')
+                                                                       'ct_masked_by_vessel_dilated2', 'ct_masked_by_vessel_dilated3', 'ct_masked_by_vessel_dilated4'), type=str,
+                                                                        default='ct_masked_by_torso')
     parser.add_argument('--target', help='target prediction', type=str,
                         default='FVC-DLCOc_SB-FEV1-TLC_He')  # FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight--DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred
     parser.add_argument(
         '--workers', help='number of workers for dataloader', type=int, default=6)
+
+    # for gird image data
+    parser.add_argument('--balanced_sampler', help='balanced_sampler', type=boolean_string, default='True')
     parser.add_argument('--crop_foreground', help='load lung mask, apply RandomCropForegroundd',
                         type=boolean_string, default='True')
     parser.add_argument(
@@ -70,6 +67,14 @@ def get_args(jupyter=False):
         '--x_size', help='length of patch along x axil ', type=int, default=240)
     parser.add_argument('--pad_ratio', help='padding ratio',
                         type=float, default=1.5)
+
+    # for point cloud data
+    parser.add_argument('--shift_range', help='shift range', type=float, default=0)
+    parser.add_argument('--PNB', help='points number for each image', type=int, default=56000)
+    parser.add_argument('--FPS_input', help='Fartest point sample input', type=boolean_string, default='False')
+    parser.add_argument('--repeated_sample', help='if apply repeated sampling to get PNB points?', type=boolean_string, default='False')
+    parser.add_argument('--position_center_norm', help='if use the relative coordinates: center point is 0,0,0', type=boolean_string, default='True')
+
 
     # training parameters
     parser.add_argument('--mode', choices=('train', 'infer',

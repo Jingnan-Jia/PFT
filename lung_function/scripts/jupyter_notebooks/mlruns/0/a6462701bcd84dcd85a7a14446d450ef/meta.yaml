@@ -1,0 +1,15 @@
+artifact_uri: file:///data1/jjia/lung_function/lung_function/scripts/jupyter_notebooks/mlruns/0/a6462701bcd84dcd85a7a14446d450ef/artifacts
+end_time: 1673795291672
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: a6462701bcd84dcd85a7a14446d450ef
+run_name: placid-zebra-445
+run_uuid: a6462701bcd84dcd85a7a14446d450ef
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1673795278759
+status: 3
+tags: []
+user_id: jjia

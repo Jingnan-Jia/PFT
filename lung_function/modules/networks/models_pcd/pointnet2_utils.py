@@ -185,7 +185,7 @@ def sample_and_group(npoint, radius, nsample, xyz, points, returnfps=False):
     idx = query_ball_point(radius, nsample, xyz, new_xyz) # index used to get value from xyz, [B, npoint, nsample]
     grouped_xyz = index_points(xyz, idx) # [B, npoint, nsample, d]
     grouped_xyz_norm = grouped_xyz - new_xyz.view(B, S, 1, d)  # get the relative coordinates
-    grouped_xyz_norm = grouped_xyz_norm / radius # get the normalized relative coordinates, like PointNeXt
+    # grouped_xyz_norm = grouped_xyz_norm / radius # get the normalized relative coordinates, like PointNeXt
 
     if points is not None:
         grouped_points = index_points(points, idx) # [B, npoint, nsample, C]

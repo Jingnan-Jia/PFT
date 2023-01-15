@@ -1,0 +1,15 @@
+artifact_uri: file:///data1/jjia/lung_function/lung_function/scripts/jupyter_notebooks/mlruns/0/4e4a31473e1a454fb8dcaf4dda2f6585/artifacts
+end_time: 1673795079796
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 4e4a31473e1a454fb8dcaf4dda2f6585
+run_name: rogue-cod-650
+run_uuid: 4e4a31473e1a454fb8dcaf4dda2f6585
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1673795066080
+status: 3
+tags: []
+user_id: jjia

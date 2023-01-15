@@ -1,0 +1,15 @@
+artifact_uri: file:///data1/jjia/lung_function/lung_function/scripts/jupyter_notebooks/mlruns/0/1af225744fce4556ab0c54dad3dc36f4/artifacts
+end_time: 1673795921428
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 1af225744fce4556ab0c54dad3dc36f4
+run_name: rumbling-fawn-789
+run_uuid: 1af225744fce4556ab0c54dad3dc36f4
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1673795908729
+status: 3
+tags: []
+user_id: jjia

@@ -1,0 +1,15 @@
+artifact_uri: file:///data1/jjia/lung_function/lung_function/scripts/jupyter_notebooks/mlruns/0/6d75ffe29d7c4de7b83911d8b247e761/artifacts
+end_time: 1673793242849
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 6d75ffe29d7c4de7b83911d8b247e761
+run_name: capable-lamb-897
+run_uuid: 6d75ffe29d7c4de7b83911d8b247e761
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1673793229485
+status: 3
+tags: []
+user_id: jjia

@@ -1,0 +1,15 @@
+artifact_uri: file:///data1/jjia/lung_function/lung_function/scripts/jupyter_notebooks/mlruns/0/a653720c9f3746e9b14624f1e8657c59/artifacts
+end_time: 1673793061709
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: a653720c9f3746e9b14624f1e8657c59
+run_name: wise-panda-535
+run_uuid: a653720c9f3746e9b14624f1e8657c59
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1673793047325
+status: 3
+tags: []
+user_id: jjia

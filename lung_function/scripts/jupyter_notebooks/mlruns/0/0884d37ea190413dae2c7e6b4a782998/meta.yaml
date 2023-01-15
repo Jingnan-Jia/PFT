@@ -1,0 +1,15 @@
+artifact_uri: file:///data1/jjia/lung_function/lung_function/scripts/jupyter_notebooks/mlruns/0/0884d37ea190413dae2c7e6b4a782998/artifacts
+end_time: 1673786506061
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 0884d37ea190413dae2c7e6b4a782998
+run_name: unruly-dolphin-259
+run_uuid: 0884d37ea190413dae2c7e6b4a782998
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1673786492123
+status: 3
+tags: []
+user_id: jjia

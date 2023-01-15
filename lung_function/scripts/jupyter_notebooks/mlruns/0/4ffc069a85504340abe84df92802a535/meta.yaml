@@ -1,0 +1,15 @@
+artifact_uri: file:///data1/jjia/lung_function/lung_function/scripts/jupyter_notebooks/mlruns/0/4ffc069a85504340abe84df92802a535/artifacts
+end_time: 1673794932783
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 4ffc069a85504340abe84df92802a535
+run_name: funny-yak-469
+run_uuid: 4ffc069a85504340abe84df92802a535
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1673794919922
+status: 3
+tags: []
+user_id: jjia

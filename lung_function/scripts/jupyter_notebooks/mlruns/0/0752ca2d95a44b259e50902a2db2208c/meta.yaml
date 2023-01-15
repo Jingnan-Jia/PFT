@@ -1,0 +1,15 @@
+artifact_uri: file:///data1/jjia/lung_function/lung_function/scripts/jupyter_notebooks/mlruns/0/0752ca2d95a44b259e50902a2db2208c/artifacts
+end_time: 1673785690376
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 0752ca2d95a44b259e50902a2db2208c
+run_name: persistent-bear-432
+run_uuid: 0752ca2d95a44b259e50902a2db2208c
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1673785677348
+status: 3
+tags: []
+user_id: jjia

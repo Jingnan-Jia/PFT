@@ -1,0 +1,15 @@
+artifact_uri: file:///data1/jjia/lung_function/lung_function/scripts/jupyter_notebooks/mlruns/0/b9cc9e5d17024c90b6a00f1f18e40163/artifacts
+end_time: 1673792406707
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: b9cc9e5d17024c90b6a00f1f18e40163
+run_name: flawless-shad-395
+run_uuid: b9cc9e5d17024c90b6a00f1f18e40163
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1673792393213
+status: 3
+tags: []
+user_id: jjia

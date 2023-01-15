@@ -20,6 +20,7 @@ from lung_function.modules.networks import get_net_3d
 from lung_function.modules.loss import get_loss
 from lung_function.modules.datasets import all_loaders
 from lung_function.modules.trans import batch_bbox2_3D
+from scipy.ndimage import gaussian_filter
 
 import os
 from monai.utils import set_determinism
@@ -217,6 +218,25 @@ def savefig(save_flag: bool, img: np.ndarray, image_name: str, dir: str = "image
         plt.close()
 
 
+def blur(a, kernel_size=3):
+    if kernel_size == 3:
+        kernel = np.array([[1.0,2.0,1.0], [2.0,4.0,2.0], [1.0,2.0,1.0]])
+        kernel = kernel / np.sum(kernel)
+    else:
+        raise Exception('not implemented')
+    arraylist = []
+    for y in range(3):
+        temparray = np.copy(a)
+        temparray = np.roll(temparray, y - 1, axis=0)
+        for x in range(3):
+            temparray_X = np.copy(temparray)
+            temparray_X = np.roll(temparray_X, x - 1, axis=1)*kernel[y,x]
+            arraylist.append(temparray_X)
+
+    arraylist = np.array(arraylist)
+    arraylist_sum = np.sum(arraylist, axis=0)
+    return arraylist_sum
+
 def occlusion_map(ptch, data, net,  inlung=False, targets=None, occlusion_dir=None, save_occ_x=False, stride=None, occ_status='healthy', inputmode='ct'):
     """Save occlusion map to disk.
 
@@ -313,6 +333,12 @@ def occlusion_map(ptch, data, net,  inlung=False, targets=None, occlusion_dir=No
         cons_value = int(occ_status.split('_')[-1])  # 'constant_-1'
         # pass # todo: add constant status
         occ_patch = np.ones((l, w, h)) * cons_value
+    elif 'blur' in occ_status:
+        sigma = int(occ_status.split('_')[-1])
+        occ_patch = gaussian_filter(x_np, sigma=sigma)
+
+    else:
+        raise Exception('Unknown occ_status')
 
     pred_str = ""
     for t, p in zip(targets, out_ori_all):
@@ -470,8 +496,8 @@ def batch_occlusion(net_id: int, patch_size: int, stride: int, max_img_nb: int, 
 
 
 if __name__ == '__main__':
-    occ_status = 'constant_1'  # 'constant' or 'healthy', -1 is the minimum value
-    id = 2133
+    occ_status = 'blur_kernel_5'  # 'constant' or 'healthy', -1 is the minimum value
+    id = 2195  # 2133, 2195, 
     INLUNG = False
     patch_size = 32  # same for 3 dims
     stride = patch_size//2  # /2 or /4 to have high resolution heat map

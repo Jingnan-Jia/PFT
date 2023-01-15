@@ -1,0 +1,15 @@
+artifact_uri: file:///data1/jjia/lung_function/lung_function/scripts/jupyter_notebooks/mlruns/0/e6152eac74b7472bab3afc3501917b39/artifacts
+end_time: 1673785213045
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: e6152eac74b7472bab3afc3501917b39
+run_name: chill-moose-820
+run_uuid: e6152eac74b7472bab3afc3501917b39
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1673785200091
+status: 3
+tags: []
+user_id: jjia

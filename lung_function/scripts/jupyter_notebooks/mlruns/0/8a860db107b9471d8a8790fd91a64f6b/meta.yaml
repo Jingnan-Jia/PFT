@@ -1,0 +1,15 @@
+artifact_uri: file:///data1/jjia/lung_function/lung_function/scripts/jupyter_notebooks/mlruns/0/8a860db107b9471d8a8790fd91a64f6b/artifacts
+end_time: 1673793160331
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 8a860db107b9471d8a8790fd91a64f6b
+run_name: powerful-mole-984
+run_uuid: 8a860db107b9471d8a8790fd91a64f6b
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1673793146815
+status: 3
+tags: []
+user_id: jjia

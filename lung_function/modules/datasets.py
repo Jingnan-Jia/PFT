@@ -23,12 +23,54 @@ import random
 import glob
 import sys
 sys.path.append("../..")
+from torch.utils.data import WeightedRandomSampler
 
 
 # import streamlit as st
 
 
 PAD_DONE = False
+
+
+
+def sampler_by_disext(data, ref = 'DLCOc_SB') -> WeightedRandomSampler:
+    """Balanced sampler according to score distribution of disext.
+
+    Args:
+        tr_y: Training labels.
+            - Three scores per image: [[score1_disext, score1_gg, score1_ret], [score2_disext, score2_gg, score3_ret],
+             ...]
+            - One score per image: [score1_disext, score2_disext, ...]
+        sys_ratio:
+
+    Returns:
+        WeightedRandomSampler
+
+    Examples:
+        :func:`ssc_scoring.mymodules.mydata.LoadScore.load`
+    """
+
+    disext_np = np.array([i[ref] for i in data])
+    disext_np = (disext_np + 0.5)//1
+
+    disext_unique = np.unique(disext_np)
+    disext_unique_list = list(disext_unique)
+
+    class_sample_count = np.array([len(np.where(disext_np == t)[0]) for t in disext_unique])
+    weight = 1. / class_sample_count
+
+    print("class_sample_count", class_sample_count)
+    print("unique_disext", disext_unique_list)
+    print("weight: ", weight)
+
+    samples_weight = np.array([weight[disext_unique_list.index(t)] for t in disext_np])
+
+    # weight = [nb_nonzero/len(data_y_list) if e[0] == 0 else nb_zero/len(data_y_list) for e in data_y_list]
+    samples_weight = samples_weight.astype(np.float32)
+    samples_weight = torch.from_numpy(samples_weight)
+    sampler = WeightedRandomSampler(samples_weight, len(samples_weight))
+    print(list(sampler))
+    return sampler
 
 
 def build_dataset(file_ls, PNB=140000):
@@ -198,7 +240,7 @@ def pat_from_json(data, fold=1) -> np.ndarray:
     return train, valid, test
 
 
-def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'test'), nb=None, top_pats=None):
+def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'test'), nb=None, top_pats=None, balanced_sampler=False):
 
     if args.ct_sp in ('1.0', '1.5'):
         pad_truncated_dir = f"/home/jjia/data/dataset/lung_function/iso{args.ct_sp}/z{args.z_size}x{args.x_size}y{args.y_size}_pad_ratio{str(args.pad_ratio)}"
@@ -284,12 +326,16 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
     # trxformd = xformd('train')
     # vdxformd = xformd('valid')
     # tsxformd = xformd('test')
+    if args.balanced_sampler:
+        sampler = sampler_by_disext(tr_data, ref = 'DLCOc_SB')  # only for training dataset
+
     data_dt = {}
     if 'train' in datasetmode:
         tr_dataset = monai.data.CacheDataset(data=tr_data, transform=xformd(
             'train', args, pad_truncated_dir=pad_truncated_dir), num_workers=0, cache_rate=1)
         train_dataloader = DataLoader(tr_dataset, batch_size=args.batch_size,
-                                      shuffle=True, num_workers=args.workers, persistent_workers=True)
+                                      shuffle=True, num_workers=args.workers, persistent_workers=True,
+                                      sampler=sampler, pin_memory=True)
         data_dt['train'] = train_dataloader
 
     if 'valid' in datasetmode:

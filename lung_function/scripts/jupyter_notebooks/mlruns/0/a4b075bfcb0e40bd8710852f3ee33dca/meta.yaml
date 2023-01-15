@@ -1,0 +1,15 @@
+artifact_uri: file:///data1/jjia/lung_function/lung_function/scripts/jupyter_notebooks/mlruns/0/a4b075bfcb0e40bd8710852f3ee33dca/artifacts
+end_time: 1673792610862
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: a4b075bfcb0e40bd8710852f3ee33dca
+run_name: placid-frog-271
+run_uuid: a4b075bfcb0e40bd8710852f3ee33dca
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1673792597116
+status: 3
+tags: []
+user_id: jjia

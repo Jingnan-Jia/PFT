@@ -63,7 +63,8 @@ def mean_diff_plot(m1, m2,
                    x_is_label=True,
                    bland_in_1_mean_std=None,
                    adap_markersize=1,
-                   ynotdiff=False):
+                   ynotdiff=False,
+                   xy_same_max=True):
     """
     Construct a Tukey/Bland-Altman Mean Difference Plot.
 
@@ -188,7 +189,8 @@ def mean_diff_plot(m1, m2,
             ax.scatter(m2.reshape(-1, ), diffs, **scatter_kwds)
         else:
             ax.scatter(means.reshape(-1, ), diffs, **scatter_kwds)
-
+    # if xy_same_max:
+    #     plt.axis('square')
     if bland_in_1_mean_std is not None:
         mean_diff = bland_in_1_mean_std['mean']
         std_diff = bland_in_1_mean_std['std']

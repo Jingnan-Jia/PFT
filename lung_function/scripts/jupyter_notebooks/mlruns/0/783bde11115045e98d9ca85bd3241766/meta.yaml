@@ -1,0 +1,15 @@
+artifact_uri: file:///data1/jjia/lung_function/lung_function/scripts/jupyter_notebooks/mlruns/0/783bde11115045e98d9ca85bd3241766/artifacts
+end_time: 1673794847654
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 783bde11115045e98d9ca85bd3241766
+run_name: welcoming-mink-612
+run_uuid: 783bde11115045e98d9ca85bd3241766
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1673794834458
+status: 3
+tags: []
+user_id: jjia

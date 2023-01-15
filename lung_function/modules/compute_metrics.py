@@ -16,6 +16,7 @@ import glob
 import os
 import seaborn as sns
 # sns.set_theme(color_codes=True)
+import scipy.stats as stats
 
 import matplotlib
 import numpy as np
@@ -66,7 +67,7 @@ def icc(label_fpath, pred_fpath, ignore_1st_column=False):
 
     return icc_dict
 
-def metrics(pred_fpath, label_fpath, ignore_1st_column=False):
+def metrics(pred_fpath, label_fpath, ignore_1st_column=False, xy_same_max=True):
     """
     ignore_1st_column: ignore the index column
     """
@@ -119,19 +120,56 @@ def metrics(pred_fpath, label_fpath, ignore_1st_column=False):
         # ax_3 = fig_3.add_subplot(row_nb, col_nb, plot_id + 1)
         ax_2 = sns.regplot(x=label, y=pred, color=colors[plot_id])
 
+        if False:
+            # from tsmoothie.smoother import *
+            # # generate intervals
+            # # operate smoothing
+            # smoother = PolynomialSmoother(degree=1)
+            # smoother.smooth(data)
+            # low_pi, up_pi = smoother.get_intervals('prediction_interval', confidence=0.05)
+            # plt.fill_between(range(len(smoother.data[0])), low_pi[0], up_pi[0], alpha=0.3, color='blue')
+
+            # Prediction Interval
+            slope, intercept = np.polyfit(label.flatten(), pred.flatten(), 1)  # linear model adjustment
+
+            x_line = np.linspace(np.min(label), np.max(label), 100)
+            y_line = np.polyval([slope, intercept], x_line)
+
+            n = label.shape[0]
+            m = 2                             # number of parameters
+            dof = n - m                       # degrees of freedom
+            t = stats.t.ppf(0.05, dof)       # Students statistic of interval confidence
+            slope, intercept = np.polyfit(label.flatten(), pred.flatten(), 1)  # linear model adjustment
+            y_model = slope * x_line + intercept   # modeling...
+            residual = pred - y_model
+            std_error = (np.sum(residual**2) / dof)**.5   # Standard deviation of the error
+            pi = t * std_error * np.sqrt(1 + 1/n + (x_line  - np.mean(label))**2 / np.sum((label - np.mean(label))**2))  
+            ax_2.fill_between(x_line, y_line + pi, y_line - pi, color = 'lightcyan', label = '95% prediction interval')
+
+            # # ax_2.fill_between(x_line, y_model + pi, y_model - pi, color="None", linestyle="--")
+            # ax_2.plot(x_line, y_model - pi, "--", color="0.5")
+            # ax_2.plot(x_line, y_model + pi, "--", color="0.5")
+
+
         # f, ax = plt.subplots(1, figsize=(8, 5))
         scatter_kwds = {'c': colors[plot_id], 'label': column}
 
 
-        f = sm.mean_diff_plot(pred, label, ax=ax, scatter_kwds=scatter_kwds,
+        f = sm.mean_diff_plot(pred, label, ax=ax, 
+        scatter_kwds=scatter_kwds,
                               bland_in_1_mean_std=None,
-                              adap_markersize=False)
-        f_2 = sm.mean_diff_plot(pred, label, ax=ax_2, sd_limit=0, scatter_kwds=scatter_kwds,
+                              adap_markersize=False, 
+                              xy_same_max=xy_same_max)
+        f_2 = sm.mean_diff_plot(pred, label, ax=ax_2, sd_limit=0, 
+        scatter_kwds=scatter_kwds,
                                 bland_in_1_mean_std=None,
-                                adap_markersize=False, ynotdiff=True)
+                                adap_markersize=False, 
+                                ynotdiff=True, 
+                                xy_same_max=xy_same_max)
 
         ax.set_title(column, fontsize=15)
         ax_2.set_title(column, fontsize=15)
+
         
         # plot linear regression line
         m, b = np.polyfit(label.flatten(), pred.flatten(), 1)
@@ -146,10 +184,23 @@ def metrics(pred_fpath, label_fpath, ignore_1st_column=False):
         ax_2.plot(x_reference, m * x_reference + b, '--', color='gray')  # light gray
         # ax_2.text(0.1, 0.7, '---  Regression line',
         #           ha="left", fontsize='large', transform=ax_2.transAxes)
-        ax_2.text(0.1, 0.7, f'y = {m:.2f}x + {b:.2f}\nR = {r_value: .2f}\nR\N{SUPERSCRIPT TWO} = {r_value ** 2: .2f}',
+        # ax_2.text(0.1, 0.7, f'y = {m:.2f}x + {b:.2f}\nR = {r_value: .2f}\nR\N{SUPERSCRIPT TWO} = {r_value ** 2: .2f}',
+        #           ha="left", fontsize='large', transform=ax_2.transAxes)
+        if p_value < 0.05:
+            p_txt = 'p < 0.05'
+        if p_value < 0.01:
+            p_txt = 'p < 0.01'
+        if p_value < 0.001:
+            p_txt = 'p < 0.001'
+        
+        ax_2.text(0.1, 0.8, f'R = {r_value: .2f}\n{p_txt}',
                   ha="left", fontsize='large', transform=ax_2.transAxes)
 
+        min_xy = min(np.min(label), np.min(pred))
+        max_xy = max(np.max(label), np.max(pred))
 
+        ax_2.set_xlim(0, max_xy*1.2)
+        ax_2.set_ylim(0, max_xy*1.2)
 
         lower_y, upper_y = ax.get_ybound()  # set these plots as the same scale for comparison
         lower_x, upper_x = ax.get_xbound()
@@ -221,7 +272,7 @@ def metrics(pred_fpath, label_fpath, ignore_1st_column=False):
     #     # # ax.set_ylim(-common_y * 1.2, common_y * 1.2)
 
     #     ax_2 = fig_2.add_subplot(row_nb, col_nb, i + 1)
-    #     # ax_2.set_xlim(0, limitx)
+        # ax_2.set_xlim(0, limitx)
     #     # ax_2.set_ylim(0, limitx)
 
     #     ax_3 = fig_3.add_subplot(row_nb, col_nb, i + 1)

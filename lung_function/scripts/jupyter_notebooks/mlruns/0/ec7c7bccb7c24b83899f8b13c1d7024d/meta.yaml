@@ -1,0 +1,15 @@
+artifact_uri: file:///data1/jjia/lung_function/lung_function/scripts/jupyter_notebooks/mlruns/0/ec7c7bccb7c24b83899f8b13c1d7024d/artifacts
+end_time: 1673794302641
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: ec7c7bccb7c24b83899f8b13c1d7024d
+run_name: overjoyed-smelt-841
+run_uuid: ec7c7bccb7c24b83899f8b13c1d7024d
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1673794290037
+status: 3
+tags: []
+user_id: jjia

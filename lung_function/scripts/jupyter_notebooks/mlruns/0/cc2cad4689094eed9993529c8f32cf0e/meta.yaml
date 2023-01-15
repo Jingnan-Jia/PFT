@@ -1,0 +1,15 @@
+artifact_uri: file:///data1/jjia/lung_function/lung_function/scripts/jupyter_notebooks/mlruns/0/cc2cad4689094eed9993529c8f32cf0e/artifacts
+end_time: 1673795820475
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: cc2cad4689094eed9993529c8f32cf0e
+run_name: serious-elk-257
+run_uuid: cc2cad4689094eed9993529c8f32cf0e
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1673795806696
+status: 3
+tags: []
+user_id: jjia
