@@ -328,13 +328,14 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
     # tsxformd = xformd('test')
     if args.balanced_sampler:
         sampler = sampler_by_disext(tr_data, ref = 'DLCOc_SB')  # only for training dataset
+        shuffle = False
 
     data_dt = {}
     if 'train' in datasetmode:
         tr_dataset = monai.data.CacheDataset(data=tr_data, transform=xformd(
             'train', args, pad_truncated_dir=pad_truncated_dir), num_workers=0, cache_rate=1)
         train_dataloader = DataLoader(tr_dataset, batch_size=args.batch_size,
-                                      shuffle=True, num_workers=args.workers, persistent_workers=True,
+                                      shuffle=shuffle, num_workers=args.workers, persistent_workers=True,
                                       sampler=sampler, pin_memory=True)
         data_dt['train'] = train_dataloader
 
