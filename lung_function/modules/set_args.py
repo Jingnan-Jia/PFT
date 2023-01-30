@@ -61,7 +61,7 @@ def get_args(jupyter=False):
         '--workers', help='number of workers for dataloader', type=int, default=6)
 
     # for gird image data
-    parser.add_argument('--balanced_sampler', help='balanced_sampler', type=boolean_string, default='True')
+    parser.add_argument('--balanced_sampler', help='balanced_sampler', type=boolean_string, default='False')
     parser.add_argument('--crop_foreground', help='load lung mask, apply RandomCropForegroundd',
                         type=boolean_string, default='True')
     parser.add_argument(
