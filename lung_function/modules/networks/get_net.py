@@ -52,6 +52,7 @@ def get_net_3d(name: str,
         cfg.sa_layers = args.sa_layers
         cfg.nsample = args.nsample_base
         cfg.num_classes = nb_cls
+        cfg.width = args.width
         net = build_model_from_cfg(cfg.model)  # pass a config set to this function to build a model
 
     elif name == 'cnn3fc1':

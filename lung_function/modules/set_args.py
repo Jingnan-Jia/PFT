@@ -37,6 +37,8 @@ def get_args(jupyter=False):
                         type=int, default=5)  # ori = 40
     parser.add_argument('--nsample_base', help='base of nsample',
                         type=int, default=32)  # ori = 64
+    parser.add_argument('--width', help='width',
+                        type=int, default=16)  # ori = 64
     parser.add_argument('--radius_scaling', help='base of radius',
                         type=float, default=2)  # ori = 2
     parser.add_argument('--sa_layers', help='sa_layers',
@@ -45,7 +47,7 @@ def get_args(jupyter=False):
     # data
     # common data
     parser.add_argument('--batch_size', help='batch_size',
-                        type=int, default=5)
+                        type=int, default=10)
     parser.add_argument('--ct_sp', help='space', type=str,
                         choices=('ori', '1.0', '1.5'), default='ori')
     parser.add_argument('--kfold_seed', help='kfold_seed',
