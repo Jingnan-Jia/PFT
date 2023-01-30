@@ -12,7 +12,7 @@ model:
     NAME: PointNextEncoder
     blocks: [1, 1, 1, 1, 1, 1]
     strides: [1, 2, 2, 2, 2, 1]
-    width: 64
+    width: 32
     in_channels: 4
     radius: 10
     radius_scaling: 1.5  
