@@ -29,7 +29,7 @@ def skeleton_vessel(file_fpath, out_fpath):
     # skeletonize_3d(img)
 
 def main():
-    vessel_HR_ls = sorted(glob("/home/jjia/data/dataset/lung_function/ori_resolution/SSc_patient_0422335.mha"))
+    vessel_HR_ls = sorted(glob("/home/jjia/data/dataset/IntrA/annotated/obj/*_full_filled_img.mha"))
     # vessel_HR_ls = ["/home/jjia/data/dataset/lung_function/ori_resolution/SSc_patient_0422335.mha",
     # "/home/jjia/data/dataset/lung_function/ori_resolution/SSc_patient_0456204.mha",
     # "/home/jjia/data/dataset/lung_function/ori_resolution/SSc_patient_6216723.mha",

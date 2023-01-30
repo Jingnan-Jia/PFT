@@ -37,6 +37,7 @@ from lung_function.modules.tool import record_1st, dec_record_cgpu, retrive_run
 from lung_function.modules.trans import batch_bbox2_3D
 import sys
 sys.path.append("../modules/networks/models_pcd")
+sys.path.append("../modules")
 
 args = get_args()
 global_lock = threading.Lock()
@@ -117,6 +118,7 @@ class Run:
         self.target = [i.lstrip() for i in args.target.split('-')]
 
         self.pointnet_fc_ls = [int(i) for i in args.pointnet_fc_ls.split('-')]
+
         self.net = get_net_3d(name=args.net, nb_cls=len(self.target), image_size=args.x_size,
                               pretrained=args.pretrained_imgnet, pointnet_fc_ls=self.pointnet_fc_ls, loss=args.loss,
                               dp_fc1_flag=args.dp_fc1_flag, args=args)  # output FVC and FEV1
@@ -236,8 +238,12 @@ class Run:
                 points[:, :, 0:3] = provider.shift_point_cloud(
                     points[:, :, 0:3], shift_range=args.shift_range)
                 points = torch.Tensor(points)
-                points = points.transpose(2, 1)
-                data[key] = points
+                
+                if 'pointnext' in args.net:  # data input for pointnext shoudl be split to two parts
+                    data[key] = {'pos':points[:,:, :3] , 'x': points.transpose(2, 1)}
+                # else:   # switch dims
+                #     data[key] = points.transpose(2, 1)
+                
 
             batch_x = data[key]  # n, c, z, y, x
             
@@ -284,7 +290,11 @@ class Run:
                         batch_x[idx, :, :, :, x_mid[idx]:] = - 1  # remove left
             else:
                 pass
-            batch_x = batch_x.to(self.device)  # n, z, y, x
+            if 'pointnext' in args.net:  # data input for pointnext shoudl be split to two parts
+                batch_x['pos'] = batch_x['pos'].to(self.device)
+                batch_x['x'] = batch_x['x'].to(self.device)  # n, z, y, x
+            else:
+                batch_x = batch_x.to(self.device)  # n, z, y, x
             batch_y = data['label'].to(self.device)
 
             if not self.flops_done:  # only calculate teh macs and params once
@@ -293,6 +303,7 @@ class Run:
                 log_param('macs_G', str(round(macs/1e9, 2)))
                 log_param('net_params_M', str(round(params/1e6, 2)))
 
+    
             with torch.cuda.amp.autocast():
                 if mode != 'train' or save_pred:  # save pred for inference
                     with torch.no_grad():

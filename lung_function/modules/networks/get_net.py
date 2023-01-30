@@ -12,6 +12,8 @@ import torchvision
 import importlib
 import sys
 sys.path.append("models_pcd")
+from lung_function.modules.openpoints.models import build_model_from_cfg
+from lung_function.modules.openpoints.utils import EasyConfig
 
 
 def get_net_3d(name: str,
@@ -32,13 +34,19 @@ def get_net_3d(name: str,
             if classname.find('ReLU') != -1:
                 m.inplace = True
         pcd_model = importlib.import_module(name)
-        if name=='pointnet_reg':
+        if name=='pointnet_reg':  
 
             net = pcd_model.get_model(nb_cls, pointnet_fc_ls, loss, dp_fc1_flag)
-        else:
+        else:  # pointnet++
             net = pcd_model.get_model(nb_cls, npoint_base=args.npoint_base, radius_base=args.radius_base, nsample_base=args.nsample_base)
         net.apply(inplace_relu)
         # elif name=='pointnet2_reg':
+    elif 'pointnext' in name:
+        
+        cfg = EasyConfig()
+        cfg_fpath = "/home/jjia/data/lung_function/lung_function/modules/cfgs/" + args.cfg
+        cfg.load(cfg_fpath, recursive=True)  # args.cfs is the path of the cfg file
+        net = build_model_from_cfg(cfg.model)  # pass a config set to this function to build a model
 
     elif name == 'cnn3fc1':
         net = Cnn3fc1(fc1_nodes=fc1_nodes, fc2_nodes=fc2_nodes,

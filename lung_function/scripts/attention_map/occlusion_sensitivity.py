@@ -20,7 +20,7 @@ from lung_function.modules.networks import get_net_3d
 from lung_function.modules.loss import get_loss
 from lung_function.modules.datasets import all_loaders
 from lung_function.modules.trans import batch_bbox2_3D
-from scipy.ndimage import gaussian_filter
+from scipy.ndimage import gaussian_filter, median_filter
 
 import os
 from monai.utils import set_determinism
@@ -218,24 +218,24 @@ def savefig(save_flag: bool, img: np.ndarray, image_name: str, dir: str = "image
         plt.close()
 
 
-def blur(a, kernel_size=3):
-    if kernel_size == 3:
-        kernel = np.array([[1.0,2.0,1.0], [2.0,4.0,2.0], [1.0,2.0,1.0]])
-        kernel = kernel / np.sum(kernel)
-    else:
-        raise Exception('not implemented')
-    arraylist = []
-    for y in range(3):
-        temparray = np.copy(a)
-        temparray = np.roll(temparray, y - 1, axis=0)
-        for x in range(3):
-            temparray_X = np.copy(temparray)
-            temparray_X = np.roll(temparray_X, x - 1, axis=1)*kernel[y,x]
-            arraylist.append(temparray_X)
+# def blur(a, kernel_size=3):
+#     if kernel_size == 3:
+#         kernel = np.array([[1.0,2.0,1.0], [2.0,4.0,2.0], [1.0,2.0,1.0]])
+#         kernel = kernel / np.sum(kernel)
+#     else:
+#         raise Exception('not implemented')
+#     arraylist = []
+#     for y in range(3):
+#         temparray = np.copy(a)
+#         temparray = np.roll(temparray, y - 1, axis=0)
+#         for x in range(3):
+#             temparray_X = np.copy(temparray)
+#             temparray_X = np.roll(temparray_X, x - 1, axis=1)*kernel[y,x]
+#             arraylist.append(temparray_X)
 
-    arraylist = np.array(arraylist)
-    arraylist_sum = np.sum(arraylist, axis=0)
-    return arraylist_sum
+#     arraylist = np.array(arraylist)
+#     arraylist_sum = np.sum(arraylist, axis=0)
+#     return arraylist_sum
 
 def occlusion_map(ptch, data, net,  inlung=False, targets=None, occlusion_dir=None, save_occ_x=False, stride=None, occ_status='healthy', inputmode='ct'):
     """Save occlusion map to disk.
@@ -335,8 +335,14 @@ def occlusion_map(ptch, data, net,  inlung=False, targets=None, occlusion_dir=No
         occ_patch = np.ones((l, w, h)) * cons_value
     elif 'blur' in occ_status:
         sigma = int(occ_status.split('_')[-1])
-        occ_patch = gaussian_filter(x_np, sigma=sigma)
-
+        if 'gaussian' in occ_status:
+            occ_patch = gaussian_filter(x_np, sigma=sigma)
+        elif 'median' in occ_status:
+            occ_patch = median_filter(x_np, size=sigma)
+        else:
+            raise Exception(f"wrong blur method")
+    elif 'shuffle' in occ_status:
+        occ_patch = None
     else:
         raise Exception('Unknown occ_status')
 
@@ -362,8 +368,14 @@ def occlusion_map(ptch, data, net,  inlung=False, targets=None, occlusion_dir=No
                 if inlung:
                     mask_ori = mask_ori * lung_mask  # exclude area outside lung
                 # mask = cv2.blur(mask_ori, (5, 5)) # todo: 3d blur
-                mask = mask_ori
-                tmp = x_np * (1-mask) + occ_patch * mask
+                if 'shuffle' in occ_status:
+                    shuffled_patch = copy.deepcopy(x_np[i: i + ptch, j: j + ptch, k: k + ptch])
+                    np.random.shuffle(shuffled_patch.flat)
+                    tmp = copy.deepcopy(x_np)
+                    tmp[i: i + ptch, j: j + ptch, k: k + ptch] = shuffled_patch
+
+                else:
+                    tmp = x_np * (1-mask_ori) + occ_patch * mask_ori
 
                 new_x = torch.tensor(tmp).float()
                 new_x = new_x.unsqueeze(0).unsqueeze(0)
@@ -433,7 +445,7 @@ def get_pat_dir(img_fpath: str) -> str:
             return path
 
 
-def batch_occlusion(net_id: int, patch_size: int, stride: int, max_img_nb: int, inlung, occ_status='healthy'):
+def batch_occlusion(args, net_id: int, patch_size: int, stride: int, max_img_nb: int, inlung, occ_status='healthy'):
     """Generate a batch of occlusion results
 
     Args:
@@ -444,15 +456,6 @@ def batch_occlusion(net_id: int, patch_size: int, stride: int, max_img_nb: int, 
         inlung (_type_): _description_
         occ_status (str, optional): _description_. Defaults to 'healthy'.
     """
-
-    args = get_args()  # get argument
-    args.batch_size = 1  # here batch size must be 1.
-    args.net = 'vgg11_3d'
-    args.input_mode = 'ct'
-    args.target = 'FVC-DLCO_SB-FEV1-TLC_He'
-    args.ct_sp = '1.5'
-
-
 
     targets = [i.lstrip() for i in args.target.split('-')
                ]  # FVC-DLCO_SB-FEV1-TLC_He
@@ -496,12 +499,33 @@ def batch_occlusion(net_id: int, patch_size: int, stride: int, max_img_nb: int, 
 
 
 if __name__ == '__main__':
-    occ_status = 'blur_kernel_5'  # 'constant' or 'healthy', -1 is the minimum value
-    id = 2195  # 2133, 2195, 
+    occ_status = 'shuffle'  # 'constant' or 'healthy', or 'blur_median_*', or 'blur_gaussian_*', -1 is the minimum value
     INLUNG = False
-    patch_size = 32  # same for 3 dims
-    stride = patch_size//2  # /2 or /4 to have high resolution heat map
+    patch_size = 16  # same for 3 dims
+    stride = patch_size  # /2 or /4 to have high resolution heat map
     # grid_nb = 10
-    batch_occlusion(id, patch_size, stride, max_img_nb=5,
-                    inlung=INLUNG, occ_status=occ_status)
-    print('finish!')
+
+    # 2414->2415_fold1: ct_masked_by_torso
+    # 2194->2195_fold1: ct
+    # 2144->2145_fold1: ct_masked_by_lung
+    # 2258->2259_fold1: vessel
+
+
+    args = get_args()  # get argument
+    args.batch_size = 1  # here batch size must be 1.
+    args.net = 'vgg11_3d'
+    args.target = 'FVC-DLCO_SB-FEV1-TLC_He'
+    args.ct_sp = '1.5'
+
+    id_input_dt = {
+            2415: 'ct_masked_by_torso', 
+            2195: 'ct', 
+            2145: 'ct_masked_by_lung', 
+            2259: 'vessel' }
+    for id, im in id_input_dt.items():
+        args.input_mode = im
+
+        batch_occlusion(args, id, patch_size, stride, max_img_nb=3,
+                        inlung=INLUNG, occ_status=occ_status)
+        print('---------------')
+    print('finish all!')

@@ -326,7 +326,7 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
     # trxformd = xformd('train')
     # vdxformd = xformd('valid')
     # tsxformd = xformd('test')
-    if args.balanced_sampler:
+    if args.balanced_sampler and 'train' in datasetmode:
         sampler = sampler_by_disext(tr_data, ref = 'DLCOc_SB')  # only for training dataset
         shuffle = False
 
