@@ -41,8 +41,7 @@ def get_args(jupyter=False):
                         type=float, default=2)  # ori = 2
     parser.add_argument('--sa_layers', help='sa_layers',
                         type=int, default=2)  # ori = 3
-    parser.add_argument('--nsample_base', help='nsample_base',
-                        type=int, default=32)  # ori = 64
+
     # data
     # common data
     parser.add_argument('--batch_size', help='batch_size',
