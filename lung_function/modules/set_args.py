@@ -38,7 +38,7 @@ def get_args(jupyter=False):
     parser.add_argument('--nsample_base', help='base of nsample',
                         type=int, default=32)  # ori = 64
     parser.add_argument('--radius_scaling', help='base of radius',
-                        type=float, default=1.5)  # ori = 2
+                        type=float, default=2)  # ori = 2
     parser.add_argument('--sa_layers', help='sa_layers',
                         type=int, default=2)  # ori = 3
 
