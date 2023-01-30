@@ -14,7 +14,7 @@ model:
     strides: [1, 2, 2, 2, 2, 1]
     width: 32
     in_channels: 4
-    radius: 15
+    radius: 5
     radius_scaling: 1.5  
     sa_layers: 2  # number of MLP layers to use in the SA block.
     sa_use_res: True  # wheter to use residual connection in SA block
