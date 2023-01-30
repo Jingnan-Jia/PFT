@@ -18,7 +18,7 @@ model:
     radius_scaling: 1.5  
     sa_layers: 2  # number of MLP layers to use in the SA block.
     sa_use_res: True  # wheter to use residual connection in SA block
-    nsample: 32
+    nsample: 64
     expansion: 4  # expansion ratio of the InvResMLP block. Defaults to 4.
     aggr_args:
       feature_type: 'dp_fj'
