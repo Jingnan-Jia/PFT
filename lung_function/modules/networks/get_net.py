@@ -14,7 +14,7 @@ import sys
 sys.path.append("models_pcd")
 from lung_function.modules.openpoints.models import build_model_from_cfg
 from lung_function.modules.openpoints.utils import EasyConfig
-
+from mlflow import log_params
 
 def get_net_3d(name: str,
                nb_cls: int,
@@ -45,7 +45,14 @@ def get_net_3d(name: str,
         
         cfg = EasyConfig()
         cfg_fpath = "/home/jjia/data/lung_function/lung_function/modules/cfgs/" + args.cfg
+
         cfg.load(cfg_fpath, recursive=True)  # args.cfs is the path of the cfg file
+        cfg.radius = args.radius_base
+        cfg.radius_scaling = args.radius_scaling
+        cfg.sa_layers = args.sa_layers
+        cfg.nsample = args.nsample_base
+        cfg.num_classes = nb_cls
+        log_params(cfg)
         net = build_model_from_cfg(cfg.model)  # pass a config set to this function to build a model
 
     elif name == 'cnn3fc1':

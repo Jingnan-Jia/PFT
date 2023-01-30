@@ -36,8 +36,13 @@ def get_args(jupyter=False):
     parser.add_argument('--radius_base', help='base of radius',
                         type=int, default=10)  # ori = 40
     parser.add_argument('--nsample_base', help='base of nsample',
-                        type=int, default=64)  # ori = 64
-
+                        type=int, default=32)  # ori = 64
+    parser.add_argument('--radius_scaling', help='base of radius',
+                        type=float, default=2)  # ori = 2
+    parser.add_argument('--sa_layers', help='sa_layers',
+                        type=int, default=2)  # ori = 3
+    parser.add_argument('--nsample_base', help='nsample_base',
+                        type=int, default=32)  # ori = 64
     # data
     # common data
     parser.add_argument('--batch_size', help='batch_size',
