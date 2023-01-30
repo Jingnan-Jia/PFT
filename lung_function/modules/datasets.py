@@ -331,6 +331,7 @@ def all_loaders(data_dir, label_fpath, args, datasetmode=('train', 'valid', 'tes
         shuffle = False
     else:
         shuffle = True
+        sampler = None
 
     data_dt = {}
     if 'train' in datasetmode:
