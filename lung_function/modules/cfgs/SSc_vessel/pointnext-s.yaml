@@ -15,7 +15,7 @@ model:
     width: 32
     in_channels: 4
     radius: 5
-    radius_scaling: 1.5  
+    radius_scaling: 2  
     sa_layers: 2  # number of MLP layers to use in the SA block.
     sa_use_res: True  # wheter to use residual connection in SA block
     nsample: 32
