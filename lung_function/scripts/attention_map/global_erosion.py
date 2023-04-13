@@ -22,8 +22,9 @@ from lung_function.modules.datasets import all_loaders
 from lung_function.modules.trans import batch_bbox2_3D
 from scipy.ndimage import gaussian_filter, median_filter
 import scipy
-
+import itk
 import os
+import pdb
 from monai.utils import set_determinism
 import random
 import numpy as np
@@ -259,7 +260,46 @@ def masked_filter(method, img, sigma, mask):
     filter *= mask
     return filter
 
-def occlusion_map(ptch, data, net,  inlung=False, targets=None, occlusion_dir=None, save_occ_x=False, stride=None, occ_status='healthy', inputmode='ct'):
+def marphology(input_fpath, method, output_fpath, radius=2):
+
+    PixelType = itk.F
+    Dimension = 3
+
+    ImageType = itk.Image[PixelType, Dimension]
+    ReaderType = itk.ImageFileReader[ImageType]
+    reader = ReaderType.New()
+    reader.SetFileName(input_fpath)
+
+    StructuringElementType = itk.FlatStructuringElement[Dimension]
+    structuringElement = StructuringElementType.Ball(radius)
+    if 'dilate' == method:
+        GrayscaleFilterType = itk.GrayscaleDilateImageFilter[
+            ImageType, ImageType, StructuringElementType
+        ]
+    elif 'erode' == method:
+        GrayscaleFilterType = itk.GrayscaleErodeImageFilter[
+            ImageType, ImageType, StructuringElementType
+        ]
+    else:
+        raise Exception(f'wrong method {method}')
+    grayscaleFilter = GrayscaleFilterType.New()
+    grayscaleFilter.SetInput(reader.GetOutput())
+    grayscaleFilter.SetKernel(structuringElement)
+
+    WriterType = itk.ImageFileWriter[ImageType]
+    writer = WriterType.New()
+    writer.SetFileName(output_fpath)
+    writer.SetInput(grayscaleFilter.GetOutput())
+
+    writer.Update()
+    pdb.set_trace()
+    out = load_itk(output_fpath)
+
+    out = out/1500
+   
+    return out 
+
+def occlusion_map(data, net,  targets=None, occlusion_dir=None, save_occ_x=False, occ_status='healthy', inputmode='ct'):
     """Save occlusion map to disk.
 
     Args:
@@ -324,136 +364,46 @@ def occlusion_map(ptch, data, net,  inlung=False, targets=None, occlusion_dir=No
     x = batch_x[0]  # shape: x,y,z
     
     # lung_mask = morphology.binary_erosion(lung_mask.numpy(), np.ones((6, 6))).astype(int)
-    if inlung:
-        lung_mask = lung_mask.numpy()
-        lung_mask[lung_mask > 0] = 1
-        lung_mask[lung_mask <= 0] = 0
     x = x.to(device)  # shape [channel, w, h]
     net.to(device)
     x_ = x.unsqueeze(0).unsqueeze(0)  # add a channel and batch dims
     out_ori = net(x_)
-    l, w, h = x.shape
-    # print(x.shape)  # [1, 512, 512] [channel, w, h]
-    # print(out_ori.shape)  # [1, 3]
+
 
     # Three-pattern scores
-    out_ori = out_ori.detach().cpu().numpy()
-    nb_out = out_ori.shape[1]
-    out_ori_all = out_ori.flatten()
+    out_ori = out_ori.detach().cpu().numpy().flatten()
 
     x_np = x.clone().detach().cpu().numpy()  # shape [l, w, h]
-    map_all_ls = [np.zeros((l, w, h)) for i in range(nb_out)]
-    map_all_w_ls = [np.zeros((l, w, h)) for i in range(nb_out)]
 
     pred_str = ""
-    for t, p in zip(targets, out_ori_all):
+    for t, p in zip(targets, out_ori):
         pred_str += f"{t}_{p:.2f}_"
     fpath_occ_x = f"{occlusion_dir}/no_occlusion_pred_{pred_str}.mha"
     save_itk(fpath_occ_x, x_np*1500, ori.tolist(), sp.tolist(), dtype='float')
 
-    i, j, k = 0, 0, 0  # row index, column index
-    img_lenth, img_width, img_height = 240, 240, 240
-    lenth_steps, width_steps, height_steps = [(x - ptch)//stride + 2 for x in (img_lenth, img_width, img_height)]
-    for a in tqdm(range(lenth_steps)):
-        i = stride * a
-        for b in tqdm(range(width_steps)):
-            j = stride * b
-            for c in tqdm(range(height_steps)):
-                k = stride * c
+    x_np_dilasion = marphology(fpath_occ_x, 'dilate', output_fpath=f"{occlusion_dir}/global_dilated.mha")
+    x_dilated = torch.tensor(x_np_dilasion).float()
+    x_dilated = x_dilated.unsqueeze(0).unsqueeze(0)
+    x_dilated = x_dilated.to(device)
+    out_dilated = net(x_dilated)
+    out_np_dilated = out_dilated.clone().detach().cpu().numpy().flatten()
 
-                mask_ori = np.zeros((l, w, h))
-                mask_ori[i: i + ptch, j: j + ptch, k: k + ptch] = 1
-                if inlung:
-                    erosed_lung = scipy.ndimage.binary_erosion(lung_mask[0], structure=np.ones((3,3,3))).astype(lung_mask[0].dtype)  # erosed_lung shape is [z, y, x]
-                    mask_ori = mask_ori * erosed_lung  # exclude area outside lung, [z,y,x]
-                # mask = cv2.blur(mask_ori, (5, 5)) # todo: 3d blur
-                tmp = copy.deepcopy(x_np)
-                shuffled_ls = tmp[i: i + ptch, j: j + ptch, k: k + ptch][mask_ori[i: i + ptch, j: j + ptch, k: k + ptch]>0]  # 1 dimensional
-                if 'blur' in occ_status:
-                    sigma = int(occ_status.split('_')[-1])
-                    tmp_patch = copy.deepcopy(x_np[i: i + ptch, j: j + ptch, k: k + ptch])
-                    mask_patch = mask_ori[i: i + ptch, j: j + ptch, k: k + ptch]
-                    
-                    if 'gaussian' in occ_status:
-                        tmp_patch = masked_filter('gaussian', tmp_patch, sigma, mask_patch)
-                        
-                    elif 'median' in occ_status:
-                        tmp_patch = masked_filter('median', tmp_patch, sigma, mask_patch)
-                    
-                    else:
-                        raise Exception(f"wrong method of bluring: {occ_status}")
-                    tmp[i: i + ptch, j: j + ptch, k: k + ptch] = tmp_patch
-
-                elif 'shuffle' in occ_status:
-                    
-                    np.random.shuffle(shuffled_ls)
-                    tmp[i: i + ptch, j: j + ptch, k: k + ptch][mask_ori[i: i + ptch, j: j + ptch, k: k + ptch]>0] = shuffled_ls
-                elif 'erosion' in occ_status or 'dilation' in occ_status:
-                    pass
-
-                else:
-                    raise Exception(f"wrong method of bluring: {occ_status}")
-       
-
-                new_x = torch.tensor(tmp).float()
-                new_x = new_x.unsqueeze(0).unsqueeze(0)
-                new_x = new_x.to(device)
-                out = net(new_x)
-
-                out_np = out.clone().detach().cpu().numpy()
-                out_all = out_np.flatten()
-
-                diff_all = out_all - out_ori_all
-
-                if save_occ_x:
-                    if len(shuffled_ls) > 0 and len(shuffled_ls) < ptch**3:  # do not save all steps
-                        # if i%patch_size==0 and j%patch_size==0:  # do not save all steps
-                        save_x_countor = True
-                        tmp2 = copy.deepcopy(tmp)
-                        if save_x_countor:  # show the contour of the image
-                            edge = 1
-                            contour_value = 1
-                            tmp2[i:i + ptch, j:j + ptch,
-                                 k:k + edge] = contour_value
-                            tmp2[i:i + ptch, j:j + ptch, k +
-                                 ptch:k + ptch - edge] = contour_value
-
-                            tmp2[i:i + ptch, j:j + edge,
-                                 k:k + ptch] = contour_value
-                            tmp2[i:i + ptch, j + ptch:j + ptch -
-                                 edge, k:k + ptch] = contour_value
-
-                            tmp2[i:i + edge, j:j + ptch,
-                                 k:k + ptch] = contour_value
-                            tmp2[i + ptch:i + ptch - edge, j:j +
-                                 ptch, k:k + ptch] = contour_value
-
-                        pred_str = ""
-                        for t, p in zip(targets, out_all):
-                            pred_str += f"{t}_{p:.2f}_"
-                        fpath_occ_x = f"{occlusion_dir}/{i}_{j}_{k}_pred_{pred_str}.mha"
-                        save_itk(fpath_occ_x, tmp2*1500, ori.tolist(),
-                                 sp.tolist(), dtype='float')
-
-                for idx in range(len(map_all_ls)):
-                    map_all_ls[idx][mask_ori > 0] += diff_all[idx]
-
-                for idx in range(len(map_all_w_ls)):
-                    map_all_w_ls[idx][mask_ori > 0] += 1
-
-    for idx in range(len(map_all_w_ls)):
-        map_all_w_ls[idx][map_all_w_ls[idx] == 0] = 1
-
-    map_all_ls = [i/j for i, j in zip(map_all_ls, map_all_w_ls)]
+    x_np_erosion = marphology(fpath_occ_x, 'erode', output_fpath=f"{occlusion_dir}/global_eroded.mha")
+    x_eroded = torch.tensor(x_np_erosion).float()
+    x_eroded = x_eroded.unsqueeze(0).unsqueeze(0)
+    x_eroded = x_eroded.to(device)
+    out_eroded = net(x_eroded)
+    out_np_eroded = out_eroded.clone().detach().cpu().numpy().flatten()
 
     y_ls = list(y.numpy().flatten())
-    pred_ls = list(out_ori_all.flatten())
-    # print(y_ls,  '----')
+    pred_ls = list(out_ori)
+    pred_dilated_ls = list(out_np_dilated)
+    pred_eroded_ls = list(out_np_eroded)
 
     # per label
-    for map, target, score, pred in zip(map_all_ls, targets, y_ls, pred_ls):
-        fpath = f"{occlusion_dir}/{target}_label_{score: .2f}_pred_{pred: .2f}.mha"
-        save_itk(fpath, map, ori.tolist(), sp.tolist(), dtype='float')
+    for target, score, pred, pred_di, pred_er in zip(targets, y_ls, pred_ls, pred_dilated_ls, pred_eroded_ls):
+        fpath = f"{occlusion_dir}/{target}_label_{score: .2f}_predOri_{pred: .2f}_predDilated_{pred_di: .2f}_predEroded_{pred_er: .2f}.mha"
+        save_itk(fpath, x, ori.tolist(), sp.tolist(), dtype='float')
 
 
 def get_pat_dir(img_fpath: str) -> str:
@@ -463,7 +413,7 @@ def get_pat_dir(img_fpath: str) -> str:
             return path
 
 
-def batch_occlusion(args, net_id: int, patch_size: int, stride: int, max_img_nb: int, inlung, occ_status='healthy'):
+def batch_occlusion(args, net_id: int, max_img_nb: int, occ_status='healthy'):
     """Generate a batch of occlusion results
 
     Args:
@@ -471,7 +421,6 @@ def batch_occlusion(args, net_id: int, patch_size: int, stride: int, max_img_nb:
         patch_size (int): _description_
         stride (int): _description_
         max_img_nb (int): _description_
-        inlung (_type_): _description_
         occ_status (str, optional): _description_. Defaults to 'healthy'.
     """
 
@@ -504,24 +453,19 @@ def batch_occlusion(args, net_id: int, patch_size: int, stride: int, max_img_nb:
 
     for data in tqdm(valid_dataloader):  # a image in a batch
         if int(data['pat_id']) in top_pats:  # only perform the most accurate patients
-            occlusion_map_dir = f"{mypath.id_dir}/{'valid_data_occlusion_maps_occ_by_masked_' + occ_status}/SSc_{data['pat_id'][0][0]}"
-            occlusion_map(patch_size, data,
+            occlusion_map_dir = f"{mypath.id_dir}/{'valid_data_global_' + occ_status}/SSc_{data['pat_id'][0][0]}"
+            occlusion_map(data,
                           net,
-                          inlung,
                           targets,
                           occlusion_map_dir,
                           save_occ_x=True,
-                          stride=stride,
                           occ_status=occ_status,
                           inputmode=args.input_mode)
 
 
 if __name__ == '__main__':
     # for occ_status in ['shuffle', 'blur_median_5', 'blur_gaussian_5']:
-    occ_status = 'blur_median_5'  # 'constant' or 'healthy', or 'blur_median_*', or 'blur_gaussian_*', -1 is the minimum value
-    patch_size = 16  # same for 3 dims
-    stride = patch_size  # /2 or /4 to have high resolution heat map
-    # grid_nb = 10
+    occ_status = 'dilasion'  # 'erosion', 'constant' or 'healthy', or 'blur_median_*', or 'blur_gaussian_*', -1 is the minimum value
 
     # 2414->2415_fold1: ct_masked_by_torso
     # 2194->2195_fold1: ct
@@ -542,13 +486,6 @@ if __name__ == '__main__':
             2259: 'vessel' }
     for id, im in id_input_dt.items():
         args.input_mode = im
-        if im in ['ct_masked_by_torso', 'ct']:
-            INLUNG = False
-        else:
-            INLUNG = True
-
-
-        batch_occlusion(args, id, patch_size, stride, max_img_nb=1,
-                        inlung=INLUNG, occ_status=occ_status)
+        batch_occlusion(args, id, max_img_nb=1, occ_status=occ_status)
         print('---------------')
     print('finish all!')

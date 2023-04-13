@@ -21,13 +21,15 @@ def get_args(jupyter=False):
                                           'cnn5fc2', 'cnn6fc2', 'cnn2fc1', 'cnn3fc2', 'r3d_18', 'slow_r50',
                                           'slowfast_r50', 'x3d_xs', 'x3d_s', 'x3d_m', 'x3d_l', 'pointnet_reg','pointnet2_reg',
                                           'vgg11_3d', 'pointnext'),  # 'r2plus1d_18' out of memory
-                        help='network name', type=str, default='pointnext')
+                        help='network name', type=str, default='vgg11_3d')
+    
+    # Point cloud network configuration
     parser.add_argument('--cfg', help='fpath of cfg',type=str, default='SSc_vessel/pointnext-s.yaml')  # ori = 40
     parser.add_argument('--fc2_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
                         default=1024)
     parser.add_argument('--fc1_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
                         default=1024)
-    parser.add_argument('--pointnet_fc_ls', help='a parameter list for fully connected layers. \
+    parser.add_argument('--pointnet_fc_ls', help='a parameter list for fully connected layers. 
     First number is the feature number after feature extraction', type=str, default="1024-512-256")
     parser.add_argument('--dp_fc1_flag', help='dropout for fc1',
                         type=boolean_string, default=True)
@@ -47,9 +49,9 @@ def get_args(jupyter=False):
     # data
     # common data
     parser.add_argument('--batch_size', help='batch_size',
-                        type=int, default=10)
+                        type=int, default=5)
     parser.add_argument('--ct_sp', help='space', type=str,
-                        choices=('ori', '1.0', '1.5'), default='ori')
+                        choices=('ori', '1.0', '1.5'), default='1.5')
     parser.add_argument('--kfold_seed', help='kfold_seed',
                         type=int, default=711)
     parser.add_argument('--test_pat', help='testing patients', choices=(
@@ -60,7 +62,7 @@ def get_args(jupyter=False):
         'ct_lower_in_lung', 'ct_front_in_lung', 'ct_back_in_lung', 'vessel', 'ct_masked_by_vessel', 'vessel_skeleton_pcd', 
         'ct_masked_by_vessel_dilated1', 'ct_masked_by_vessel_dilated2', 'ct_masked_by_vessel_dilated3', 'ct_masked_by_vessel_dilated4',
         'IntrA_cls'),
-        type=str, default='vessel_skeleton_pcd')
+        type=str, default='ct_masked_by_torso')
     parser.add_argument('--target', help='target prediction', type=str,
                         default='FVC-DLCOc_SB-FEV1-TLC_He')  # FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight--DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred
     parser.add_argument(
@@ -105,8 +107,6 @@ def get_args(jupyter=False):
                         default='mse')
     parser.add_argument('--mat_diff_loss_scale',
                         help='scale for another loss', type=float, default=0)
-    parser.add_argument('--pretrained', choices=(1, 0),
-                        help='pretrained or not', type=int, default=0)
     parser.add_argument('--epochs', help='total epochs', type=int, default=500)
     parser.add_argument('--weight_decay', help='L2 regularization', type=float,
                         default=0.001)  # must be a float number !
