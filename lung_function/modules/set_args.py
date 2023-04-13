@@ -29,8 +29,7 @@ def get_args(jupyter=False):
                         default=1024)
     parser.add_argument('--fc1_nodes', help='the number of nodes of fc2 layer, original is 4096', type=int,
                         default=1024)
-    parser.add_argument('--pointnet_fc_ls', help='a parameter list for fully connected layers. 
-    First number is the feature number after feature extraction', type=str, default="1024-512-256")
+    parser.add_argument('--pointnet_fc_ls', help='a parameter list for fully connected layers. First number is the feature number after feature extraction', type=str, default="1024-512-256")
     parser.add_argument('--dp_fc1_flag', help='dropout for fc1',
                         type=boolean_string, default=True)
     parser.add_argument('--npoint_base', help='base of npoint',
