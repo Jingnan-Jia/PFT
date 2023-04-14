@@ -63,7 +63,7 @@ def get_args(jupyter=False):
         'IntrA_cls'),
         type=str, default='ct_masked_by_torso')
     parser.add_argument('--target', help='target prediction', type=str,
-                        default='FVC-DLCOc_SB-FEV1-TLC_He')  # FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight--DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred
+                        default='DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred')  # FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight--DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred
     parser.add_argument(
         '--workers', help='number of workers for dataloader', type=int, default=6)
 
@@ -95,7 +95,7 @@ def get_args(jupyter=False):
                         type=str, default="0")  # SSc-852-853-854-855, 1504-1505-1510-1515
     # parser.add_argument('--reload_jobid', help='jobid used for inference, or continue_train', type=int, default=0)
     parser.add_argument('--pretrained_imgnet', help='if pretrained from imagenet',
-                        type=boolean_string, default='True')
+                        type=boolean_string, default='False')
     parser.add_argument('--total_folds', choices=(4, 5),
                         help='4-fold training', type=int, default=4)
     parser.add_argument('--fold', choices=(1, 2, 3, 4),
