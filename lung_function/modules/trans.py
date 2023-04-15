@@ -274,7 +274,11 @@ class LoadDatad(MapTransform):
                 x -= 1500
 
             # save_itk(fpath.replace('.nii.gz', '_GcVessel_dilated.nii.gz'), x, ori, sp)
-
+        try:
+            tmp = np.array([data[i] for i in self.target])
+        except:
+            print('error on this patient', fpath)
+            raise Exception('the patient has empty target label')
         y = np.array([data[i] for i in self.target])
         # print(f"{fpath}, {y}")
         file_id = fpath.split(".nii.gz")[0].split('SSc_patient_')[-1].split('_')[0]
