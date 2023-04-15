@@ -280,6 +280,11 @@ class LoadDatad(MapTransform):
             print('error on this patient', fpath)
             raise Exception('the patient has empty target label')
         y = np.array([data[i] for i in self.target])
+        try:
+            tmp = y.astype(np.float32)
+        except:
+            print('error on this patient', fpath)
+            raise Exception('the patient has empty target label')
         # print(f"{fpath}, {y}")
         file_id = fpath.split(".nii.gz")[0].split('SSc_patient_')[-1].split('_')[0]
         new_data = {'pat_id': np.array([int(file_id)]),  # Note: save it as a array. extract the patient id as a int, otherwise, error occured: TypeError: default_collate: batch must contain tensors, numpy arrays, numbers, dicts or lists; found <U21

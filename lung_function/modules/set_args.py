@@ -63,7 +63,7 @@ def get_args(jupyter=False):
         'IntrA_cls'),
         type=str, default='ct_masked_by_torso')
     parser.add_argument('--target', help='target prediction', type=str,
-                        default='DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred')  # FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight--DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred
+                        default='DLCOcPP-FEV1PP-FVCPP-TLCPP')  # FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight--DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred
     parser.add_argument(
         '--workers', help='number of workers for dataloader', type=int, default=6)
 
