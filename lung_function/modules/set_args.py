@@ -21,7 +21,7 @@ def get_args(jupyter=False):
                                           'cnn5fc2', 'cnn6fc2', 'cnn2fc1', 'cnn3fc2', 'r3d_18', 'slow_r50',
                                           'slowfast_r50', 'x3d_xs', 'x3d_s', 'x3d_m', 'x3d_l', 'pointnet_reg','pointnet2_reg',
                                           'vgg11_3d', 'pointnext'),  # 'r2plus1d_18' out of memory
-                        help='network name', type=str, default='vgg11_3d')
+                        help='network name', type=str, default='x3d_m')
     
     # Point cloud network configuration
     parser.add_argument('--cfg', help='fpath of cfg',type=str, default='SSc_vessel/pointnext-s.yaml')  # ori = 40
