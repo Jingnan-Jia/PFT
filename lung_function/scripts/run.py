@@ -112,7 +112,7 @@ class Run:
     """A class which has its dataloader and step_iteration. It is like Lighting. 
     """
 
-    def __init__(self, args: Namespace):
+    def __init__(self, args: Namespace, dataloader_flag=True):
         self.mypath = PFTPath(args.id, check_id_dir=False, space=args.ct_sp)
         self.device = torch.device("cuda")  # 'cuda'
         self.target = [i.lstrip() for i in args.target.split('-')]
@@ -144,6 +144,7 @@ class Run:
         self.net = self.net.to(self.device)
 
         validMAEEpoch_AllBest = 1000
+        args.pretrained_id = str(args.pretrained_id)
         if args.pretrained_id != '0':
             if 'SSc' in args.pretrained_id:  # pretrained by ssc_pos L-Net weights
                 pretrained_id = args.pretrained_id.split(
@@ -182,11 +183,11 @@ class Run:
                 else:
                     model = ckpt
                 # model_fpath need to exist
-                self.net.load_state_dict(model, strict=False)
+                self.net.load_state_dict(model, strict=False)  # strict=false due to the calculation of FLOPs and params
                 # move the new initialized layers to GPU
                 self.net = self.net.to(self.device)
-
-        self.data_dt = all_loaders(self.mypath.data_dir, self.mypath.label_fpath, args)
+        if dataloader_flag:
+            self.data_dt = all_loaders(self.mypath.data_dir, self.mypath.label_fpath, args)
 
         self.BestMetricDt = {'trainLossEpochBest': 1000,
                              # 'trainnoaugLossEpochBest': 1000,
@@ -520,8 +521,30 @@ def log_metrics_all_folds_average(id_ls: list, id: int, experiment):
     # average metrics
     metric_dt = average_all_folds(id_ls, id, experiment, key='metrics')
     log_metrics(metric_dt, 0)
+ 
 
 
+def ensemble_4folds_testing(fold_ex_dt_ls):
+    parent_dir = '/home/jjia/data/lung_function/lung_function/scripts/results/experiments/'
+
+    for fold_ex_dt in fold_ex_dt_ls:
+        dir0 = parent_dir + str(fold_ex_dt[0])
+        ave_fpath =dir0  + '/test_pred.csv'
+        output_file_path = Path(ave_fpath)
+        output_file_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        df_ls = []
+        for i in [1,2,3,4]:
+            data_fpath = parent_dir + str(fold_ex_dt[i]) + '/test_pred.csv'
+            df = pd.read_csv(data_fpath,index_col=0)
+            df_ls.append(df)
+        df_ave = (df_ls[0] + df_ls[1] + df_ls[2] + df_ls[3])/4
+        df_ave.to_csv(ave_fpath)
+        print(ave_fpath)
+
+        
+
+        
 def main():
     SEED = 4
     set_determinism(SEED)  # set seed for this run
@@ -585,6 +608,32 @@ def main():
                     run(args)
             log_metrics_all_folds_average(
                 all_folds_id_ls, current_id, experiment)
+            
+            fold_ex_dt_ls = {0: current_id, 
+                             1: all_folds_id_ls[0], 
+                             2: all_folds_id_ls[1], 
+                             3: all_folds_id_ls[2], 
+                             4: all_folds_id_ls[3]}
+            ensemble_4folds_testing(fold_ex_dt_ls)  
+            
+            parent_dir = '/home/jjia/data/lung_function/lung_function/scripts/results/experiments/'
+            label_fpath = parent_dir + str(fold_ex_dt_ls[1]) + '/test_label.csv'
+            pred_fpath = parent_dir + str(fold_ex_dt_ls[0]) + '/test_pred.csv'
+            
+            # add icc
+            icc_value = icc(label_fpath, pred_fpath, ignore_1st_column=True)
+            icc_value_ensemble = {'ensemble_' + k:v  for k, v in icc_value.items()}  # update keys
+            print(icc_value_ensemble)
+            log_params(icc_value_ensemble)
+            
+            # add r
+            r_p_value = metrics(pred_fpath, label_fpath, ignore_1st_column=True)
+            r_p_value_ensemble = {'ensemble_' + k:v  for k, v in r_p_value.items()}  # update keys
+            log_params(r_p_value_ensemble)
+
+
+
+
 
 
 if __name__ == "__main__":
