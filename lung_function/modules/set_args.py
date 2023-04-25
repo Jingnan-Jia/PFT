@@ -44,11 +44,12 @@ def get_args(jupyter=False):
                         type=float, default=2)  # ori = 2
     parser.add_argument('--sa_layers', help='sa_layers',
                         type=int, default=2)  # ori = 3
-
+    parser.add_argument('--t_stride', help='sa_layers',  # for x3d network
+                        type=int, default=2)  # ori = 3
     # data
     # common data
     parser.add_argument('--batch_size', help='batch_size',
-                        type=int, default=5)
+                        type=int, default=1)
     parser.add_argument('--ct_sp', help='space', type=str,
                         choices=('ori', '1.0', '1.5'), default='1.5')
     parser.add_argument('--kfold_seed', help='kfold_seed',

@@ -117,7 +117,9 @@ def get_net_3d(name: str,
                 1, 8, kernel_size=(5, 7, 7), stride=(1, 2, 2), padding=(2, 3, 3), bias=False)
         else:
             net = torch.hub.load(  # head_output_with_global_average = False when we removed the final pooling layer
-                'facebookresearch/pytorchvideo', name, pretrained=pretrained, head_output_with_global_average=False)
+                'facebookresearch/pytorchvideo', name, pretrained=pretrained, 
+                stage_temporal_stride = (args.t_stride, args.t_stride, args.t_stride, args.t_stride),  # set the temporal stride as 2
+                head_output_with_global_average=False)  # remove the final pooling layer
             net.blocks[0].conv.conv_t = nn.Conv3d(1, 24, kernel_size=(
                 1, 3, 3), stride=(1, 2, 2), padding=(0, 1, 1), bias=False)
             net.blocks[-1].pool.pool = nn.AdaptiveAvgPool3d(1)  # reinitialize the weights
