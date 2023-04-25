@@ -346,7 +346,7 @@ class LoadPos(LoaderInit):
             [tr_x, vd_x, ts_x], [tr_y, vd_y, ts_y], ["train", "valid", "test"]
         ):
             self.save_xy(x, y, mode)
-        # tr_x, tr_y, vd_x, vd_y, ts_x, ts_y = tr_x[:2], tr_y[:2], vd_x[:2], vd_y[:2], ts_x[:2], ts_y[:2]
+        # tr_x, tr_y, vd_x, vd_y, ts_x, ts_y = tr_x[:2], tr_y[:2], vd_x[:2], vd_y[:2], ts_x[:2], ts_y[:2]  # practice
         # print(tr_x)
         # cache_nb = len(tr_x) if len(tr_x) < 50 else 50
         tr_data = [{"fpath_key": x, "world_key": y} for x, y in zip(tr_x, tr_y)]

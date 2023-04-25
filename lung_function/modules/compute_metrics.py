@@ -75,6 +75,9 @@ def metrics(pred_fpath, label_fpath, ignore_1st_column=False, xy_same_max=True):
     r_dict, p_dict = {}, {}
     df_pred = pd.read_csv(pred_fpath)
     df_label = pd.read_csv(label_fpath)
+    
+
+    
     if ignore_1st_column:
         df_pred = df_pred.iloc[: , 1:]
         df_label = df_label.iloc[: , 1:]
@@ -108,6 +111,16 @@ def metrics(pred_fpath, label_fpath, ignore_1st_column=False, xy_same_max=True):
     else:
         raise Exception(f"the columns number is greater than 20: {df_label.columns}")
 
+    # 将第一列放到第三列，保持其他列不变，把FVC调整到第三列去
+    cols_names = df_pred.columns.tolist()
+    print(df_label.columns[0])
+    if df_label.columns[0]!='pat_id':
+        cols_names.insert(2, cols_names.pop(0))
+    else:
+        cols_names.insert(3, cols_names.pop(1))
+    df_pred = df_pred[cols_names]
+    df_label = df_label[cols_names]  
+    
     for plot_id, column in enumerate(df_label.columns):
         if column=='pat_id':
             continue
@@ -198,9 +211,11 @@ def metrics(pred_fpath, label_fpath, ignore_1st_column=False, xy_same_max=True):
 
         min_xy = min(np.min(label), np.min(pred))
         max_xy = max(np.max(label), np.max(pred))
-
+        
+        ax_2.plot([0, max_xy*1.2], [0, max_xy*1.2], '--', color = 'gray')
         ax_2.set_xlim(0, max_xy*1.2)
         ax_2.set_ylim(0, max_xy*1.2)
+
 
         lower_y, upper_y = ax.get_ybound()  # set these plots as the same scale for comparison
         lower_x, upper_x = ax.get_xbound()

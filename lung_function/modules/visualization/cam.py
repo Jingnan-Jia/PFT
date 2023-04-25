@@ -131,11 +131,3 @@ def scale_cam_image(cam, target_size=None):
     result = np.float32(result)
 
     return result
-
-
-def main():
-    print("finish all")
-
-
-if __name__ == "__main__":
-    main()

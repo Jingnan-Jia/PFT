@@ -1,7 +1,7 @@
 import sys
 sys.path.append("../../..")
 from lung_function.modules.datasets import all_loaders
-from lung_function.modules.cam import GradCAM
+from lung_function.modules.visualization.cam import GradCAM
 from tqdm import tqdm
 from mlflow import log_metric, log_metrics, log_param, log_params
 import mlflow
@@ -54,7 +54,16 @@ def main():
 
 
     mypath = PFTPath(Ex_id, check_id_dir=False, space=args.ct_sp)
-
+    
+    # select the top accurate patients
+    mode = 'valid'
+    label_all = pd.read_csv(mypath.save_label_fpath(mode))
+    pred_all = pd.read_csv(mypath.save_pred_fpath(mode))
+    mae_all = (label_all - pred_all).abs()
+    mae_all['average'] = mae_all.mean(numeric_only=True, axis=1)
+    label_all_sorted = label_all.loc[mae_all['average'].argsort()[:max_img_nb]]
+    top_pats = label_all_sorted['pat_id'].to_list()
+    
     data_dt = all_loaders(mypath.data_dir, mypath.label_fpath, args, datasetmode='valid', top_pats=top_pats)
     dataloader = data_dt['valid']
 
