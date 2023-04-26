@@ -108,6 +108,7 @@ def get_net_3d(name: str,
                 'facebookresearch/pytorchvideo', name, pretrained=pretrained)
             net.blocks[0].conv = nn.Conv3d(1, 64, kernel_size=(
                 1, 7, 7), stride=(1, 2, 2), padding=(0, 3, 3), bias=False)
+            net.blocks[-1].proj = nn.Linear(in_features=2048, out_features=nb_cls, bias=True)
         elif name == "slowfast_r50":
             net = torch.hub.load(
                 'facebookresearch/pytorchvideo', name, pretrained=pretrained)
@@ -115,16 +116,22 @@ def get_net_3d(name: str,
                 1, 8, kernel_size=(5, 7, 7), stride=(1, 2, 2), padding=(2, 3, 3), bias=False)
             net.blocks[0].multipathway_blocks[1].conv = nn.Conv3d(
                 1, 8, kernel_size=(5, 7, 7), stride=(1, 2, 2), padding=(2, 3, 3), bias=False)
+            net.blocks[-1].proj = nn.Linear(in_features=2048, out_features=nb_cls, bias=True)
         else:
             net = torch.hub.load(  # head_output_with_global_average = False when we removed the final pooling layer
                 'facebookresearch/pytorchvideo', name, pretrained=pretrained, 
                 stage_temporal_stride = (args.t_stride, args.t_stride, args.t_stride, args.t_stride),  # set the temporal stride as 2
-                head_output_with_global_average=False)  # remove the final pooling layer
+                head_output_with_global_average=True)  # remove the final pooling layer
             net.blocks[0].conv.conv_t = nn.Conv3d(1, 24, kernel_size=(
                 1, 3, 3), stride=(1, 2, 2), padding=(0, 1, 1), bias=False)
             net.blocks[-1].pool.pool = nn.AdaptiveAvgPool3d(1)  # reinitialize the weights
             net.blocks[-1].pool.post_conv = nn.Conv3d(432, 2048, kernel_size=( 1, 1, 1), stride=(1, 1, 1), bias=False) 
-        net.blocks[-1].proj = nn.Linear(in_features=2048, out_features=nb_cls, bias=True)
+            # net.blocks[-1].pool.post_conv = nn.Sequential(nn.Flatten(1),nn.Linear(in_features=432, out_features=2048, bias=True))
+            net.blocks[-1].proj = nn.Linear(in_features=2048, out_features=100, bias=True)
+            net.blocks[-1].output_pool = nn.Sequential(nn.Flatten(1), nn.Linear(in_features=100, out_features=nb_cls, bias=True))
+
+        
+        
 
 
     else:

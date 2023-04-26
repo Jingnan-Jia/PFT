@@ -199,13 +199,17 @@ def metrics(pred_fpath, label_fpath, ignore_1st_column=False, xy_same_max=True):
         #           ha="left", fontsize='large', transform=ax_2.transAxes)
         # ax_2.text(0.1, 0.7, f'y = {m:.2f}x + {b:.2f}\nR = {r_value: .2f}\nR\N{SUPERSCRIPT TWO} = {r_value ** 2: .2f}',
         #           ha="left", fontsize='large', transform=ax_2.transAxes)
-        if p_value < 0.05:
-            p_txt = 'p < 0.05'
-        if p_value < 0.01:
-            p_txt = 'p < 0.01'
+
+
         if p_value < 0.001:
             p_txt = 'p < 0.001'
-        
+        elif p_value < 0.01:
+            p_txt = 'p < 0.01'
+        elif p_value < 0.05:
+            p_txt = 'p < 0.05'
+        else:
+            p_txt = f'p = {p_value:.2f}'
+            
         ax_2.text(0.1, 0.8, f'R = {r_value: .2f}\n{p_txt}',
                   ha="left", fontsize='large', transform=ax_2.transAxes)
 
