@@ -44,8 +44,7 @@ def get_args(jupyter=False):
                         type=float, default=2)  # ori = 2
     parser.add_argument('--sa_layers', help='sa_layers',
                         type=int, default=2)  # ori = 3
-    parser.add_argument('--t_stride', help='sa_layers',  # for x3d network
-                        type=int, default=2)  # ori = 3
+
     # data
     # common data
     parser.add_argument('--batch_size', help='batch_size',
@@ -62,9 +61,9 @@ def get_args(jupyter=False):
         'ct_lower_in_lung', 'ct_front_in_lung', 'ct_back_in_lung', 'vessel', 'ct_masked_by_vessel', 'vessel_skeleton_pcd', 
         'ct_masked_by_vessel_dilated1', 'ct_masked_by_vessel_dilated2', 'ct_masked_by_vessel_dilated3', 'ct_masked_by_vessel_dilated4',
         'IntrA_cls'),
-        type=str, default='ct_masked_by_torso')
+        type=str, default='ct')
     parser.add_argument('--target', help='target prediction', type=str,
-                        default='FVC-DLCO_SB-FEV1-TLC_He')  # FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight--DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred DLCOcPP-FEV1PP-FVCPP-TLCPP
+                        default='FEV1-FVC-TLC_He')  # FVC-DLCO_SB-FEV1-TLC_He-Age-Height-Weight--DLCOc/pred-FEV1/pred-FVC/predNew-TLC/pred DLCOcPP-FEV1PP-FVCPP-TLCPP
     parser.add_argument(
         '--workers', help='number of workers for dataloader', type=int, default=6)
 
