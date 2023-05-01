@@ -112,14 +112,18 @@ def metrics(pred_fpath, label_fpath, ignore_1st_column=False, xy_same_max=True):
         raise Exception(f"the columns number is greater than 20: {df_label.columns}")
 
     # 将第一列放到第三列，保持其他列不变，把FVC调整到第三列去
-    cols_names = df_pred.columns.tolist()
-    print(df_label.columns[0])
-    if df_label.columns[0]!='pat_id':
-        cols_names.insert(2, cols_names.pop(0))
-    else:
-        cols_names.insert(3, cols_names.pop(1))
-    df_pred = df_pred[cols_names]
-    df_label = df_label[cols_names]  
+    
+    # print(df_label.columns[0]) 
+    # if df_label.columns[0]!='pat_id':
+    #     cols_names.insert(2, cols_names.pop(0))
+    # else:
+    #     cols_names.insert(3, cols_names.pop(1))
+    df_pred = df_pred.rename(columns={'DLCOc_SB': 'DLCOc', 'TLC_He': 'TLC'})  
+    df_label = df_label.rename(columns={'DLCOc_SB': 'DLCOc', 'TLC_He': 'TLC'})  
+    print(df_pred.columns.tolist(),'yyaayy')
+    # cols_names = df_pred.columns.tolist()
+    # df_pred = df_pred[cols_names]
+    # df_label = df_label[cols_names]  
     
     for plot_id, column in enumerate(df_label.columns):
         if column=='pat_id':

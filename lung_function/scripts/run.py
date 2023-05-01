@@ -524,23 +524,22 @@ def log_metrics_all_folds_average(id_ls: list, id: int, experiment):
  
 
 
-def ensemble_4folds_testing(fold_ex_dt_ls):
+def ensemble_4folds_testing(fold_ex_dt):
     parent_dir = '/home/jjia/data/lung_function/lung_function/scripts/results/experiments/'
 
-    for fold_ex_dt in fold_ex_dt_ls:
-        dir0 = parent_dir + str(fold_ex_dt[0])
-        ave_fpath =dir0  + '/test_pred.csv'
-        output_file_path = Path(ave_fpath)
-        output_file_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        df_ls = []
-        for i in [1,2,3,4]:
-            data_fpath = parent_dir + str(fold_ex_dt[i]) + '/test_pred.csv'
-            df = pd.read_csv(data_fpath,index_col=0)
-            df_ls.append(df)
-        df_ave = (df_ls[0] + df_ls[1] + df_ls[2] + df_ls[3])/4
-        df_ave.to_csv(ave_fpath)
-        print(ave_fpath)
+    dir0 = parent_dir + str(fold_ex_dt[0])
+    ave_fpath =dir0  + '/test_pred.csv'
+    output_file_path = Path(ave_fpath)
+    output_file_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    df_ls = []
+    for i in [1,2,3,4]:
+        data_fpath = parent_dir + str(fold_ex_dt[i]) + '/test_pred.csv'
+        df = pd.read_csv(data_fpath,index_col=0)
+        df_ls.append(df)
+    df_ave = (df_ls[0] + df_ls[1] + df_ls[2] + df_ls[3])/4
+    df_ave.to_csv(ave_fpath)
+    print(ave_fpath)
 
         
 
@@ -609,16 +608,16 @@ def main():
             log_metrics_all_folds_average(
                 all_folds_id_ls, current_id, experiment)
             
-            fold_ex_dt_ls = {0: current_id, 
+            fold_ex_dt = {0: current_id, 
                              1: all_folds_id_ls[0], 
                              2: all_folds_id_ls[1], 
                              3: all_folds_id_ls[2], 
                              4: all_folds_id_ls[3]}
-            ensemble_4folds_testing(fold_ex_dt_ls)  
+            ensemble_4folds_testing(fold_ex_dt)  
             
             parent_dir = '/home/jjia/data/lung_function/lung_function/scripts/results/experiments/'
-            label_fpath = parent_dir + str(fold_ex_dt_ls[1]) + '/test_label.csv'
-            pred_fpath = parent_dir + str(fold_ex_dt_ls[0]) + '/test_pred.csv'
+            label_fpath = parent_dir + str(fold_ex_dt[1]) + '/test_label.csv'
+            pred_fpath = parent_dir + str(fold_ex_dt[0]) + '/test_pred.csv'
             
             # add icc
             icc_value = icc(label_fpath, pred_fpath, ignore_1st_column=True)

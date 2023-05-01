@@ -1,5 +1,6 @@
 import os
 import sys
+from torchsummary import summary
 
 # sys.path.append("../..")
 sys.path.append("../../..")
@@ -104,10 +105,10 @@ def main():
     if args.net=='x3d_m':
         target_layers = [
             # myrun.net.blocks[1].res_blocks[0].branch2.conv_b,
-                         myrun.net.blocks[2].res_blocks[0].branch2.conv_b,
+                        #  myrun.net.blocks[2].res_blocks[0].branch2.conv_b,
         #                  myrun.net.blocks[3].res_blocks[0].branch2.conv_b,
                         #  myrun.net.blocks[4].res_blocks[0].branch2.conv_b,
-                        #  myrun.net.blocks[5].pool.pool,
+                         myrun.net.blocks[5].proj,
                          ]  # TODO: change this line select which layer
     else:
         target_layers = [
