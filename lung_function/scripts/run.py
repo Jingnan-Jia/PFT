@@ -26,6 +26,7 @@ import functools
 import thop
 import os
 import copy
+import pandas as pd
 
 from lung_function.modules import provider
 from lung_function.modules.compute_metrics import icc, metrics
@@ -169,7 +170,7 @@ class Run:
             else:
                 if '-' in args.pretrained_id:
                     pretrained_ids = args.pretrained_id.split('-')
-                    args.pretrained_id = pretrained_ids[fold]
+                    args.pretrained_id = pretrained_ids[self.fold]
 
                 pretrained_path = PFTPath(
                     args.pretrained_id, check_id_dir=False, space=args.ct_sp)
@@ -242,7 +243,7 @@ class Run:
                 points = torch.Tensor(points)
                 
                 if 'pointnext' in args.net:  # data input for pointnext shoudl be split to two parts
-                    data[key] = {'pos':points[:,:, :3] , 'x': points.transpose(2, 1)}
+                    data[key] = {'pos': points[:, :, :3], 'x': points.transpose(2, 1)}
                 # else:   # switch dims
                 #     data[key] = points.transpose(2, 1)
                 

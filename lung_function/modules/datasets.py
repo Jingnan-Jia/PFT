@@ -176,7 +176,16 @@ def clean_data(pft_df, data_dir, target, top_pats):
         pft_df.drop(pft_df[pft_df['FEV1PP'] == "NV"].index, inplace=True)
     if top_pats is not None:
         avail_subject_id = ['SSc_patient_'+f"{i:07}" for i in top_pats]
-        pft_df.drop(pft_df[~pft_df['subjectID'].isin(avail_subject_id)].index, inplace=True)
+        # pft_df.drop(pft_df[~pft_df['subjectID'].isin(avail_subject_id)].index, inplace=True)
+        
+        # 将'subjectID'列设置为索引
+        pft_df = pft_df.set_index('subjectID')
+        
+        # 筛选子集数据并保持sub_ls列表中的顺序
+        pft_df = pft_df.loc[avail_subject_id, :]
+        
+        # 将'subjectID'列重新变为一列，而不是索引
+        pft_df = pft_df.reset_index()
 
 
 
