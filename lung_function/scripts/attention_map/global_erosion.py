@@ -279,6 +279,45 @@ def batch_occlusion(args, net_id: int, max_img_nb: int, occ_status='healthy'):
                           inputmode=args.input_mode)
 
 
+class Args:  # convert dict to class attribute
+    def __init__(self, d=None):
+        if d is not None:
+            for key, value in d.items():
+                if value == 'True':
+                    value = True
+                elif value == 'False':
+                    value = False
+                else:
+                    try:
+                        value = float(value)  # convert to float value if possible
+                        try:
+                            if int(value) == value:  # convert to int if possible
+                                value = int(value)
+                        except Exception:
+                            pass
+                    except Exception:
+                        pass
+                setattr(self, key, value)
+                
+def pre_setting(Ex_id):
+    # retrive the run for the ex id
+    mlflow.set_tracking_uri("http://nodelogin02:5000")
+    experiment = mlflow.set_experiment("lung_fun_db15")
+    client = MlflowClient()
+    run_ls = client.search_runs(experiment_ids=[experiment.experiment_id],
+                                filter_string=f"params.id LIKE '%{Ex_id}%'")
+    run_ = run_ls[0]
+    args_dt = run_.data.params  # extract the hyper parameters
+    args = Args(args_dt)  # convert to object
+    args.workers=1
+    args.use_cuda = True
+    mypath = PFTPath(Ex_id, check_id_dir=False, space=args.ct_sp)
+    args.pretrained_id = Ex_id
+    myrun = Run(args, dataloader_flag=False)
+    
+    return args, mypath, myrun
+
+
 if __name__ == '__main__':
     # for occ_status in ['shuffle', 'blur_median_5', 'blur_gaussian_5']:
     occ_status = 'dilasion'  # 'erosion', 'constant' or 'healthy', or 'blur_median_*', or 'blur_gaussian_*', -1 is the minimum value
@@ -304,4 +343,31 @@ if __name__ == '__main__':
         args.input_mode = im
         batch_occlusion(args, id, max_img_nb=1, occ_status=occ_status)
         print('---------------')
+    print('finish all!')
+    
+    for Ex_id in [2535, 2732    ]:
+        print(Ex_id)
+        max_img_nb = 1
+        mode = 'valid'
+        
+        args, mypath, myrun = pre_setting(Ex_id)
+        
+        # for occ_status in ['shuffle', 'blur_median_5', 'blur_gaussian_5']:
+        occ_status = 'shuffle'  # 'shuffle', 'constant' or 'healthy', or 'blur_median_*', or 'blur_gaussian_*', -1 is the minimum value
+        patch_size = 16  # same for 3 dims
+        stride = patch_size  # /2 or /4 to have high resolution heat map
+        # grid_nb = 10
+
+        # 2414->2415_fold1: ct_masked_by_torso
+        # 2194->2195_fold1: ct
+        # 2144->2145_fold1: ct_masked_by_lung
+        # 2258->2259_fold1: vessel
+
+        if args.input_mode in ['ct_masked_by_torso', 'ct']:
+            INLUNG = True
+        else:
+            INLUNG = True
+
+        batch_occlusion(args, mypath, myrun, patch_size, stride, max_img_nb=max_img_nb,
+                        inlung=INLUNG, occ_status=occ_status)
     print('finish all!')

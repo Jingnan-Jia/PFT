@@ -79,7 +79,7 @@ def get_loader(mode, mypath, max_img_nb, args):
 
 def pre_setting(Ex_id):
     # retrive the run for the ex id
-    mlflow.set_tracking_uri("http://nodelogin02:5000")
+    mlflow.set_tracking_uri("http://nodelogin01:5000")
     experiment = mlflow.set_experiment("lung_fun_db15")
     client = MlflowClient()
     run_ls = client.search_runs(experiment_ids=[experiment.experiment_id],
@@ -104,91 +104,97 @@ def main():
     # update parameters
     AttentionMethod = "GradCAM"  # or others
     Ex_id = 2664  # 2522 vgg 4-out, 2601 for vgg, 2657 for x3d_m FEV, 2666 for x3d_m of four outputs.
-    max_img_nb = 3
-    mode = 'valid'
-    
-    args, mypath, myrun = pre_setting(Ex_id, )
-    
-    device = torch.device("cuda:0" if args.use_cuda else "cpu")
-
-
-    if args.net=='x3d_m':
-        target_layers = [
-            # myrun.net.blocks[1].res_blocks[0].branch2.conv_b,
-                        #  myrun.net.blocks[2].res_blocks[0].branch2.conv_b,
-        #                  myrun.net.blocks[3].res_blocks[0].branch2.conv_b,
-                        #  myrun.net.blocks[4].res_blocks[0].branch2.conv_b,
-                        #  myrun.net.blocks[5].pool.pool,
-                         myrun.net.blocks[-1].pool.pre_conv,
-
-                         ]  # TODO: change this line select which layer
-    else:
-        target_layers = [
-                        
-                    
-                        # all pooling layers
-                        # myrun.net.avgpool,
-                        # myrun.net.features[28], 
-                        myrun.net.features[21], 
-                        # myrun.net.features[14], 
-                        # myrun.net.features[7], 
-                        # myrun.net.features[3], 
-
-                        #  myrun.net.features[18], 
-                        #  myrun.net.features[15], 
-                        ]  # TODO: change this line select which layer
-
-
-    # select the top accurate patients
-    
-    dataloader = get_loader(mode=mode, mypath=mypath, max_img_nb=max_img_nb, args=args)
-
-
-    if '-' in args.target:
-        all_outputs_ls = args.target.split('-')  # possible names: DLCOc, FEV1, FVC, TLC, DLCOcPP, FEV1PP, FVCPP, TLCPP
-    else:
-        all_outputs_ls = [args.target]
-
-
-    for data in dataloader:
-
-
-            
-        batch_pat_id = data['pat_id'].detach().numpy()
-        batch_x = data[args.input_mode][:,:,:,:,:]  # ct  ct_masked_by_torso
-        batch_y = data['label']
-        batch_ori = data['origin'].detach().numpy()
-        batch_sp = data['spacing'].detach().numpy()
+    for Ex_id in [2751, 2664, 2657, 2658, 2662]:  # 2543, 2541, 2539, 2537, 2535
+        max_img_nb = 80
+        mode = 'valid'
         
-        if args.input_mode == 'ct_masked_by_left_lung':
-            a = copy.deepcopy(data['lung_mask'])
-            a[a !=2] = 0
-            batch_x += 1  # shift lowest value from -1 to 0
-            batch_x = batch_x * a
-            batch_x -= 1
-        elif args.input_mode == 'ct_masked_by_right_lung':
-            a = copy.deepcopy(data['lung_mask'])
-            a[a !=1] = 0
-            batch_x += 1  # shift lowest value from -1 to 0
-            batch_x = batch_x * a
-            batch_x -= 1
+        args, mypath, myrun = pre_setting(Ex_id, )
+        
+        device = torch.device("cuda:0" if args.use_cuda else "cpu")
+
+
+        if args.net=='x3d_m':
+            target_layers = [
+                # myrun.net.blocks[1].res_blocks[0].branch2.conv_b,
+                            #  myrun.net.blocks[2].res_blocks[0].branch2.conv_b,
+            #                  myrun.net.blocks[3].res_blocks[0].branch2.conv_b,
+                            #  myrun.net.blocks[4].res_blocks[0].branch2.conv_b,
+                            #  myrun.net.blocks[5].pool.pool,
+                            myrun.net.blocks[-1].pool.pre_conv,
+
+                            ]  # TODO: change this line select which layer
+        else:
+            target_layers = [
+                            
+                        
+                            # all pooling layers
+                            # myrun.net.avgpool,
+                            # myrun.net.features[28], 
+                            myrun.net.features[21], 
+                            # myrun.net.features[14], 
+                            # myrun.net.features[7], 
+                            # myrun.net.features[3], 
+
+                            #  myrun.net.features[18], 
+                            #  myrun.net.features[15], 
+                            ]  # TODO: change this line select which layer
+
+
+        # select the top accurate patients
+        
+        dataloader = get_loader(mode=mode, mypath=mypath, max_img_nb=max_img_nb, args=args)
+
+
+        if '-' in args.target:
+            all_outputs_ls = args.target.split('-')  # possible names: DLCOc, FEV1, FVC, TLC, DLCOcPP, FEV1PP, FVCPP, TLCPP
+        else:
+            all_outputs_ls = [args.target]
+
+
+        for data in dataloader:
+
+
+                
+            batch_pat_id = data['pat_id'].detach().numpy()
+            batch_x = data[args.input_mode][:,:,:,:,:]  # ct  ct_masked_by_torso
+            batch_y = data['label']
+            batch_ori = data['origin'].detach().numpy()
+            batch_sp = data['spacing'].detach().numpy()
             
-        for pat_id, image, ori, sp, label in zip(batch_pat_id, batch_x, batch_ori, batch_sp, batch_y):
+            if args.input_mode == 'ct_masked_by_left_lung':
+                a = copy.deepcopy(data['lung_mask'])
+                a[a !=2] = 0
+                batch_x += 1  # shift lowest value from -1 to 0
+                batch_x = batch_x * a
+                batch_x -= 1
+            elif args.input_mode == 'ct_masked_by_right_lung':
+                a = copy.deepcopy(data['lung_mask'])
+                a[a !=1] = 0
+                batch_x += 1  # shift lowest value from -1 to 0
+                batch_x = batch_x * a
+                batch_x -= 1
+                
+            for pat_id, image, ori, sp, label in zip(batch_pat_id, batch_x, batch_ori, batch_sp, batch_y):
 
-            ct_fpath = f"{myrun.mypath.id_dir}/cam/SSc_patient_{pat_id[0]}.mha"
-            save_itk(ct_fpath, image[0].detach().numpy(), np.float64(ori), np.float64(sp), dtype='float')
+                ct_fpath = f"{myrun.mypath.id_dir}/cam/SSc_patient_{pat_id[0]}.mha"
+                save_itk(ct_fpath, image[0].detach().numpy(), np.float64(ori), np.float64(sp), dtype='float')
 
-            img = image[None].to(device)
+                img = image[None].to(device)
 
-            for target_output in all_outputs_ls:
-                targets = [RegressionOutputTarget(target_output = target_output, all_outputs = all_outputs_ls)]  # TODO: change it to select which output
-                cam = GradCAM(model=myrun.net, target_layers=target_layers, use_cuda=args.use_cuda)
-                    
-                grayscale_cam = cam(input_tensor=img, targets=targets)  # shape: 1, z, y, x
-                cam_fpath = f"{myrun.mypath.id_dir}/cam/SSc_patient_{pat_id[0]}_target_{target_output}_pool4_blocks[4].res_blocks[0].branch2.conv_b.mha"
-                save_itk(cam_fpath, grayscale_cam[0], np.float64(ori), np.float64(sp), dtype='float')
-                # attention.run(pat_id, image, ori, sp, label)  # for my own code of RAM
-                print('Finish pat_id: ', pat_id[0],target_output )
+                for idx, (target_output, lb) in enumerate(zip(all_outputs_ls, label)):
+                    targets = [RegressionOutputTarget(target_output = target_output, all_outputs = all_outputs_ls)]  # TODO: change it to select which output
+                    cam = GradCAM(model=myrun.net, target_layers=target_layers, use_cuda=args.use_cuda)
+                        
+                    grayscale_cam, output_value = cam(input_tensor=img, targets=targets)  # shape: 1, z, y, x
+                    # print(cam_fpath)
+                    # print(output_value)
+                    # print(idx)
+                    # print(output_value[0][idx])
+                    cam_fpath = f"{myrun.mypath.id_dir}/cam/SSc_patient_{pat_id[0]}_target_{target_output}_label{lb:.2f}_pred{output_value[0][idx]:.2f}blocks[-1]_pool_pre_conv.mha"
+                    print(cam_fpath)
+                    save_itk(cam_fpath, grayscale_cam[0], np.float64(ori), np.float64(sp), dtype='float')
+                    # attention.run(pat_id, image, ori, sp, label)  # for my own code of RAM
+                    # print('Finish pat_id: ', pat_id[0],target_output )
     print("Finish all")
 
 if __name__ == '__main__':

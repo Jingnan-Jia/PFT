@@ -375,34 +375,36 @@ def pre_setting(Ex_id):
     return args, mypath, myrun
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--id', type=int, default=0)  # ori = 512
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('--id', type=int, default=0)  # ori = 512
+    # args = parser.parse_args()
     
-    Ex_id = args.id  # 2522 vgg 4-out, 2601 for vgg, 2657 for x3d_m FEV, 2666 for x3d_m of four outputs.
-    max_img_nb = 3
-    mode = 'valid'
-    
-    args, mypath, myrun = pre_setting(Ex_id)
-     
-    # for occ_status in ['shuffle', 'blur_median_5', 'blur_gaussian_5']:
-    occ_status = 'shuffle'  # 'shuffle', 'constant' or 'healthy', or 'blur_median_*', or 'blur_gaussian_*', -1 is the minimum value
-    patch_size = 16  # same for 3 dims
-    stride = patch_size  # /2 or /4 to have high resolution heat map
-    # grid_nb = 10
+    # Ex_id = args.id  # 2522 vgg 4-out, 2601 for vgg, 2657 for x3d_m FEV, 2666 for x3d_m of four outputs.
+    for Ex_id in [2535, 2732    ]:
+        print(Ex_id)
+        max_img_nb = 1
+        mode = 'valid'
+        
+        args, mypath, myrun = pre_setting(Ex_id)
+        
+        # for occ_status in ['shuffle', 'blur_median_5', 'blur_gaussian_5']:
+        occ_status = 'shuffle'  # 'shuffle', 'constant' or 'healthy', or 'blur_median_*', or 'blur_gaussian_*', -1 is the minimum value
+        patch_size = 16  # same for 3 dims
+        stride = patch_size  # /2 or /4 to have high resolution heat map
+        # grid_nb = 10
 
-    # 2414->2415_fold1: ct_masked_by_torso
-    # 2194->2195_fold1: ct
-    # 2144->2145_fold1: ct_masked_by_lung
-    # 2258->2259_fold1: vessel
+        # 2414->2415_fold1: ct_masked_by_torso
+        # 2194->2195_fold1: ct
+        # 2144->2145_fold1: ct_masked_by_lung
+        # 2258->2259_fold1: vessel
 
-    if args.input_mode in ['ct_masked_by_torso', 'ct']:
-        INLUNG = False
-    else:
-        INLUNG = True
+        if args.input_mode in ['ct_masked_by_torso', 'ct']:
+            INLUNG = False
+        else: 
+            INLUNG = True
 
-    batch_occlusion(args, mypath, myrun, patch_size, stride, max_img_nb=1,
-                    inlung=INLUNG, occ_status=occ_status)
+        batch_occlusion(args, mypath, myrun, patch_size, stride, max_img_nb=max_img_nb,
+                        inlung=INLUNG, occ_status=occ_status)
     print('finish all!')
 
 
