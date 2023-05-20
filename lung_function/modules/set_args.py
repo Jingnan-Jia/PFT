@@ -106,7 +106,7 @@ def get_args(jupyter=False):
                         default='mse')
     parser.add_argument('--mat_diff_loss_scale',
                         help='scale for another loss', type=float, default=0)
-    parser.add_argument('--epochs', help='total epochs', type=int, default=500)
+    parser.add_argument('--epochs', help='total epochs', type=int, default=100)
     parser.add_argument('--weight_decay', help='L2 regularization', type=float,
                         default=0.001)  # must be a float number !
     parser.add_argument('--lr', help='learning rate',
