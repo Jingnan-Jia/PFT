@@ -1,10 +1,9 @@
 #!/bin/bash
 #SBATCH --partition=gpu-long
-##SBATCH --exclude=node853,node858
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:2
 #SBATCH --cpus-per-gpu=6
 ##SBATCH -t 7-00:00:00
-#SBATCH --mem-per-gpu=120G
+#SBATCH --mem-per-gpu=100G
 #SBATCH -e results/logs/slurm-%j.err
 #SBATCH -o results/logs/slurm-%j.out
 ##SBATCH --mail-type=end
@@ -72,5 +71,7 @@ conda activate py38
 
 # shellcheck disable=SC2046
 # idx=0; export CUDA_VISIBLE_DEVICES=$idx; stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --remark="balanced sampler, lr=0.001"
-idx=0; export CUDA_VISIBLE_DEVICES=$idx; stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --net='x3d_m' --pretrained_imgnet=True --batch_size=1 --input_mode="ct_masked_by_vessel" --epochs=100 --target='TLC_He' --remark="1 outputs, from pretraining"
+idx=0; export CUDA_VISIBLE_DEVICES=$idx; stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --net='x3d_m' --pretrained_imgnet=True --batch_size=1 --input_mode="ct_right_in_lung" --epochs=100 --target='TLC_He' --remark="1 outputs, from pretraining" &
+idx=1; export CUDA_VISIBLE_DEVICES=$idx; stdbuf -oL python -u run.py 2>${slurm_dir}/slurm-${job_id}_${idx}_err.txt 1>${slurm_dir}/slurm-${job_id}_${idx}_out.txt --outfile=${slurm_dir}/slurm-${job_id}_$idx --hostname="$(hostname)" --jobid=${job_id} --net='x3d_m' --pretrained_imgnet=True --batch_size=1 --input_mode="ct_left_in_lung" --epochs=100 --target='TLC_He' --remark="1 outputs, from pretraining" &
+wait
 
